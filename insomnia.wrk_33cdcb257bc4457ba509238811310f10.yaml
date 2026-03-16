@@ -1,0 +1,22 @@
+type: environment.insomnia.rest/5.0
+schema_version: "5.1"
+name: LOCAL - Automation
+meta:
+  id: wrk_33cdcb257bc4457ba509238811310f10
+  created: 1773627913870
+  modified: 1773630210277
+  description: ""
+environments:
+  name: LOCAL - Automation
+  meta:
+    id: env_da51b9cc18c94db8bdd00872bc9b9698
+    created: 1773627913873
+    modified: 1773630210276
+    isPrivate: false
+  data:
+    blockchain_token: ""
+    fihost: ""
+    fitoken: ""
+    host: ""
+    password: ""
+    userId: ""
