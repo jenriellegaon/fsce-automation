@@ -2159,7 +2159,7 @@ collection:
             meta:
               id: req_e3d364207ae7474cabbb26f8db7c9d53
               created: 1773627777363
-              modified: 1773904243551
+              modified: 1774837711840
               isPrivate: false
               description: ""
               sortKey: -1773627756564
@@ -2445,7 +2445,7 @@ collection:
             meta:
               id: req_c21f4346a8484c90bc5f7c726a4e0919
               created: 1773627777365
-              modified: 1773630217804
+              modified: 1774837987652
               isPrivate: false
               description: ""
               sortKey: -1773627756563
@@ -2463,628 +2463,235 @@ collection:
               - name: Content-Type
                 value: application/json
             scripts:
-              afterResponse: "insomnia.test(\"Sequential API Chain: Token -> Upload -> Approve
+              afterResponse: >-
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
                 Optional -> Acceptance -> Disclosure -> Optional Disbursement ->
-                Direct CASA = BANK REJECTED\", function () {\r
-
-                \    const generateRandomString = (length) => {\r
-
-                \        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';\r
-
-                \        let result = '';\r
-
-                \        for (let i = 0; i < length; i++) {\r
-
-                \            result += chars.charAt(Math.floor(Math.random() *
-                chars.length));\r
-
-                \        }\r
-
-                \        return result;\r
-
-                \    };\r
-
-                \r
-
-                \    const generateRandomNumber = (length) => {\r
-
-                \        const chars = '0123456789';\r
-
-                \        let result = '';\r
-
-                \        for (let i = 0; i < length; i++) {\r
-
-                \            result += chars.charAt(Math.floor(Math.random() *
-                chars.length));\r
-
-                \        }\r
-
-                \        return result;\r
-
-                \    };\r
-
-                \r
-
-                \    const tokenResponse = insomnia.response.json();\r
-
-                \r
-
-                \    if (tokenResponse.success === true) {\r
-
-                \        const token = tokenResponse.result;\r
-
-                \        insomnia.environment.set(\"blockchain_token\",
-                token);\r
-
-                \r
-
-                \        const batchId = generateRandomString(10);\r
-
-                \        const generatedDocNum = generateRandomString(12);\r
-
-                \r
-
-                \        const date = new Date();\r
-
-                \        const randomDays = Math.floor(Math.random() * 30) +
-                1;\r
-
-                \        date.setDate(date.getDate() + randomDays);\r
-
-                \r
-
-                \        const futureDueDate =
-                date.toISOString().split('T')[0];\r
-
-                \        const today = new Date().toISOString().split('T')[0];\r
-
-                \r
-
-                \        const uploadRequest = {\r
-
-                \            url:
-                `${insomnia.environment.get('host')}/invoice/upload`,\r
-
-                \            method: \"POST\",\r
-
-                \            header: {\r
-
-                \                \"Content-Type\": \"application/json\",\r
-
-                \                \"Authorization\": `Bearer ${token}`\r
-
-                \            },\r
-
-                \            body: {\r
-
-                \                mode: 'raw',\r
-
-                \                raw: JSON.stringify({\r
-
-                \                    \"role\": \"BUYER\",\r
-
-                \                    \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                    \"uploadCode\": \"internal\",\r
-
-                \                    \"data\": {\r
-
-                \                        \"batchId\": batchId,\r
-
-                \                        \"fileName\": \"uploadfile.csv\",\r
-
-                \                        \"orgCode\": \"EBC\",\r
-
-                \                        \"role\": \"BUYER\",\r
-
-                \                        \"documents\": [{\r
-
-                \                            \"documentNumber\":
-                generatedDocNum,\r
-
-                \                            \"documentType\": \"IN\",\r
-
-                \                            \"buyerCode\": \"EBC\",\r
-
-                \                            \"buyerName\": \"Example Buyer
-                Company\",\r
-
-                \                            \"sellerCode\": \"ESC\",\r
-
-                \                            \"sellerName\": \"Example Seller
-                Company\",\r
-
-                \                            \"transactionDate\": today,\r
-
-                \                            \"deliveryDate\": today,\r
-
-                \                            \"dueDate\": futureDueDate,\r
-
-                \                            \"currency\": \"PHP\",\r
-
-                \                            \"outstandingAmount\": 1000,\r
-
-                \                            \"totalAmount\": \"1000.00\",\r
-
-                \                            \"prioritySeller\": true\r
-
-                \                        }]\r
-
-                \                    }\r
-
-                \                })\r
-
-                \            }\r
-
-                \        };\r
-
-                \r
-
-                \        insomnia.sendRequest(uploadRequest, (err, res) => {\r
-
-                \            insomnia.test(\"PD Flow: Invoice Upload (Buyer
-                Maker) -> BUYER_MAKER_REQUEST_DOCUMENT_APPROVAL\", () => {\r
-
-                \                insomnia.expect(res.code).to.be.oneOf([200,
-                201]);\r
-
-                \            });\r
-
-                \            if (err) return console.error(\"Upload API
-                Error:\", err);\r
-
-                \r
-
-                \            const uploadData = res.json();\r
-
-                \r
-
-                \            if (uploadData.success && uploadData.result &&
-                uploadData.result.length > 0) {\r
-
-                \                const docNumberFromResponse =
-                uploadData.result[0].documentNumber;\r
-
-                \                const pdApproveOptionalPayload = {\r
-
-                \                    \"data\": {\r
-
-                \                        \"documents\": [\r
-
-                \                            { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                        ],\r
-
-                \                        \"status\":
-                \"BUYER_CHECKER_APPROVED_DOCUMENT\",\r
-
-                \                        \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                        \"rfFlag\": \"OPTIONAL\",\r
-
-                \                        \"buyerAmountLimit\": \"1000\",\r
-
-                \                        \"discountingType\": \"TYPE\",\r
-
-                \                        \"lendingTag\": \"TAG\"\r
-
-                \                    }\r
-
-                \                }\r
-
-                \r
-
-                \                const pdApproveOptionalRequest = {\r
-
-                \                    url:
-                `${insomnia.environment.get('host')}/invoice/pd/approval`,\r
-
-                \                    method: \"PUT\",\r
-
-                \                    header: {\r
-
-                \                        \"Content-Type\":
-                \"application/json\",\r
-
-                \                        \"Authorization\": `Bearer ${token}`\r
-
-                \                    },\r
-
-                \                    body: {\r
-
-                \                        mode: 'raw',\r
-
-                \                        raw:
-                JSON.stringify(pdApproveOptionalPayload)\r
-
-                \                    }\r
-
-                \                };\r
-
-                \r
-
-                \                insomnia.sendRequest(pdApproveOptionalRequest,
-                (err, pdApproveOptionalResponse) => {\r
-
-                \                    insomnia.test(\"PD Flow: Approve Optional
-                (Buyer Checker) -> BUYER_CHECKER_APPROVED_DOCUMENT\", () => {\r
-
-                \                        insomnia.expect(pdApproveOptionalRespo\
-                nse.code).to.be.oneOf([200, 201]);\r
-
-                \                    });\r
-
-                \r
-
-                \                    if (err) return console.error(\"PD Approve
-                Optional API Error:\", err);\r
-
-                \r
-
-                \                    const pdAcceptancePayload = {\r
-
-                \                        \"data\": {\r
-
-                \                            \"documents\": [\r
-
-                \                                { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                            ],\r
-
-                \                            \"status\":
-                \"SELLER_MAKER_ACCEPTED_RF\",\r
-
-                \                            \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                        }\r
-
-                \                    }\r
-
-                \r
-
-                \                    const pdAcceptanceRequest = {\r
-
-                \                        url:
-                `${insomnia.environment.get('host')}/invoice/pd/acceptance`,\r
-
-                \                        method: \"PUT\",\r
-
-                \                        header: {\r
-
-                \                            \"Content-Type\":
-                \"application/json\",\r
-
-                \                            \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                        },\r
-
-                \                        body: {\r
-
-                \                            mode: 'raw',\r
-
-                \                            raw:
-                JSON.stringify(pdAcceptancePayload)\r
-
-                \                        }\r
-
-                \                    };\r
-
-                \r
-
-                \                    insomnia.sendRequest(pdAcceptanceRequest,
-                (err, pdAcceptanceResponse) => {\r
-
-                \                        insomnia.test(\"PD Flow: Acceptance
-                (Seller Maker) -> SELLER_MAKER_ACCEPTED_RF\", () => {\r
-
-                \                            insomnia.expect(pdAcceptanceRespon\
-                se.code).to.be.oneOf([200, 201]);\r
-
-                \                        });\r
-
-                \r
-
-                \                        if (err) return console.error(\"PD
-                Acceptance API Error:\", err);\r
-
-                \r
-
-                \                        const pdDisclosurePayload = {\r
-
-                \                            \"data\": {\r
-
-                \                                \"documents\": [\r
-
-                \                                    { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                                ],\r
-
-                \                                \"disclosureNumber\":
-                `DS${generateRandomNumber(10)}`,\r
-
-                \                                \"status\":
-                \"SELLER_APPROVER_ACCEPTED_RF\",\r
-
-                \                                \"buyerAmountLimit\": 1000,\r
-
-                \                                \"atcCode\": \"CODE1\",\r
-
-                \                                \"atcPercentage\": 10,\r
-
-                \                                \"factorRate\": 5,\r
-
-                \                                \"bankCharge\": 2,\r
-
-                \                                \"processingFee\": \"5\",\r
-
-                \                                \"processingFeeType\":
-                \"PERCENTAGE\",\r
-
-                \                                \"chargeTo\": \"BUYER\",\r
-
-                \                                \"vatRate\": 5,\r
-
-                \                                \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                            }\r
-
-                \                        }\r
-
-                \r
-
-                \                        const pdDisclosureRequest = {\r
-
-                \                            url:
-                `${insomnia.environment.get('host')}/invoice/pd/disclosure`,\r
-
-                \                            method: \"POST\",\r
-
-                \                            header: {\r
-
-                \                                \"Content-Type\":
-                \"application/json\",\r
-
-                \                                \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                            },\r
-
-                \                            body: {\r
-
-                \                                mode: 'raw',\r
-
-                \                                raw:
-                JSON.stringify(pdDisclosurePayload)\r
-
-                \                            }\r
-
-                \                        };\r
-
-                \r
-
-                \                        insomnia.sendRequest(pdDisclosureReque\
-                st, (err, pdDisclosureResponse) => {\r
-
-                \                            insomnia.test(\"PD Flow: PD
-                Disclosure -> SELLER_APPROVER_ACCEPTED_RF\", () => {\r
-
-                \                                insomnia.expect(pdDisclosureRe\
-                sponse.code).to.be.oneOf([200, 201]);\r
-
-                \                            });\r
-
-                \r
-
-                \                            if (err) return console.error(\"PD
-                Disclosure API Error:\", err);\r
-
-                \r
-
-                \                            const pdOptionalDisbursementPayload
-                = {\r
-
-                \                                \"data\": {\r
-
-                \                                    \"documents\": [\r
-
-                \                                        { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                                    ],\r
-
-                \                                    \"status\":
-                \"INVOICE_FULLY_PAID_BY_BANK_TO_SELLER\",\r
-
-                \                                    \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                    \"referenceId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                    \"transactionId\":
-                `UBL${generateRandomNumber(8)}`,\r
-
-                \                                    \"hasCwt\": false\r
-
-                \                                }\r
-
-                \                            }\r
-
-                \r
-
-                \                            const pdOptionalDisbursementRequest
-                = {\r
-
-                \                                url:
-                `${insomnia.environment.get('host')}/invoice/pd/optional-disbur\
-                sement`,\r
-
-                \                                method: \"PUT\",\r
-
-                \                                header: {\r
-
-                \                                    \"Content-Type\":
-                \"application/json\",\r
-
-                \                                    \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                                },\r
-
-                \                                body: {\r
-
-                \                                    mode: 'raw',\r
-
-                \                                    raw:
-                JSON.stringify(pdOptionalDisbursementPayload)\r
-
-                \                                }\r
-
-                \                            };\r
-
-                \r
-
-                \                            insomnia.sendRequest(pdOptionalDis\
-                bursementRequest, (err, pdAOptionalDisbursementResponse) => {\r
-
-                \                                insomnia.test(\"PD Flow:
-                Optional Disbursement (Discounted) ->
-                INVOICE_FULLY_PAID_BY_BANK_TO_SELLER\", () => {\r
-
-                \                                    insomnia.expect(pdAOptiona\
-                lDisbursementResponse.code).to.be.oneOf([200, 201]);\r
-
-                \                                });\r
-
-                \r
-
-                \                                if (err) return
-                console.error(\"PD Optional Disbursement API Error:\", err);\r
-
-                \r
-
-                \                                const groupId =
-                generateRandomString(8);\r
-
-                \r
-
-                \                                const pdDirectCasaGroupPayload
-                = {\r
-
-                \                                    \"data\": {\r
-
-                \                                        \"documents\": [\r
-
-                \                                            {\r
-
-                \                                                \"number\":
-                docNumberFromResponse,\r
-
-                \                                                \"requestedLoa\
-                nAmount\": \"1000\"\r
-
-                \                                            }\r
-
-                \                                        ],\r
-
-                \                                        \"groupId\": groupId,\r
-
-                \                                        \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                        \"status\":
-                \"BANK_REJECTED_PAYMENT_BU2BA\",\r
-
-                \                                        \"referenceId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                        \"transactionId\":
-                `UBL${generateRandomNumber(8)}`,\r
-
-                \                                        \"modeOfPayment\":
-                \"AC_PAYMENT\",\r
-
-                \                                        \"remarks\": \"Bank
-                Rejected PD Direct CASA\"\r
-
-                \                                    }\r
-
-                \                                }\r
-
-                \r
-
-                \                                const pdDirectCasaGroupRequest
-                = {\r
-
-                \                                    url:
-                `${insomnia.environment.get('host')}/group/pd/direct`,\r
-
-                \                                    method: \"POST\",\r
-
-                \                                    header: {\r
-
-                \                                        \"Content-Type\":
-                \"application/json\",\r
-
-                \                                        \"Authorization\":
-                `Bearer ${token}`\r
-
-                \                                    },\r
-
-                \                                    body: {\r
-
-                \                                        mode: 'raw',\r
-
-                \                                        raw:
-                JSON.stringify(pdDirectCasaGroupPayload)\r
-
-                \                                    }\r
-
-                \                                };\r
-
-                \r
-
-                \                                insomnia.sendRequest(pdDirectC\
-                asaGroupRequest, (err, pdDirectCasaGroupResponse) => {\r
-
-                \                                    insomnia.test(\"PD Flow
-                Complete: Create Direct CASA Group -> BANK REJECTED\", () => {\r
-
-                \                                        insomnia.expect(pdDire\
-                ctCasaGroupResponse.code).to.be.oneOf([200, 201]);\r
-
-                \                                    });\r
-
-                \                                });\r
-
-                \                            });\r
-
-                \                        });\r
-
-                \                    });\r
-
-                \                });\r
-
-                \            } else {\r
-
-                \                console.error(\"Upload failed to return a
-                document number.\");\r
-
-                \            }\r
-
-                \        });\r
-
-                \    }\r
-
-                });"
+                Direct CASA = BANK REJECTED", async function () {
+                    const generateRandomString = (length) => {
+                        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                        return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                    };
+
+                    const generateRandomNumber = (length) => {
+                        const chars = '0123456789';
+                        return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                    };
+
+                    const send = (req) =>
+                        new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) return reject(err);
+                                resolve(res);
+                            });
+                        });
+
+                    try {
+                        // ===== TOKEN =====
+                        const tokenResponse = insomnia.response.json();
+
+                        if (!tokenResponse?.success) {
+                            throw new Error("Token retrieval failed");
+                        }
+
+                        const token = tokenResponse.result;
+                        insomnia.environment.set("blockchain_token", token);
+
+                        // ===== COMMON DATA =====
+                        const batchId = generateRandomString(10);
+                        const generatedDocNum = generateRandomString(12);
+
+                        const date = new Date();
+                        date.setDate(date.getDate() + Math.floor(Math.random() * 30) + 1);
+
+                        const futureDueDate = date.toISOString().split('T')[0];
+                        const today = new Date().toISOString().split('T')[0];
+
+                        // ===== UPLOAD =====
+                        const uploadRes = await send({
+                            url: `${insomnia.environment.get('host')}/invoice/upload`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    role: "BUYER",
+                                    userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                    uploadCode: "internal",
+                                    data: {
+                                        batchId,
+                                        fileName: "uploadfile.csv",
+                                        orgCode: "EBC",
+                                        role: "BUYER",
+                                        documents: [{
+                                            documentNumber: generatedDocNum,
+                                            documentType: "IN",
+                                            buyerCode: "EBC",
+                                            buyerName: "Example Buyer Company",
+                                            sellerCode: "ESC",
+                                            sellerName: "Example Seller Company",
+                                            transactionDate: today,
+                                            deliveryDate: today,
+                                            dueDate: futureDueDate,
+                                            currency: "PHP",
+                                            outstandingAmount: 1000,
+                                            totalAmount: "1000.00",
+                                            prioritySeller: true
+                                        }]
+                                    }
+                                })
+                            }
+                        });
+
+                        insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
+
+                        const uploadData = uploadRes.json();
+                        const docNumber = uploadData?.result?.[0]?.documentNumber;
+
+                        if (!docNumber) throw new Error("No document number returned");
+
+                        // ===== APPROVE OPTIONAL =====
+                        const approveRes = await send({
+                            url: `${insomnia.environment.get('host')}/invoice/pd/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        documents: [{ documentNumber: docNumber }],
+                                        status: "BUYER_CHECKER_APPROVED_DOCUMENT",
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        rfFlag: "OPTIONAL",
+                                        buyerAmountLimit: "1000",
+                                        discountingType: "TYPE",
+                                        lendingTag: "TAG"
+                                    }
+                                })
+                            }
+                        });
+
+                        insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
+
+                        // ===== ACCEPTANCE =====
+                        const acceptanceRes = await send({
+                            url: `${insomnia.environment.get('host')}/invoice/pd/acceptance`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        documents: [{ documentNumber: docNumber }],
+                                        status: "SELLER_MAKER_ACCEPTED_RF",
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                    }
+                                })
+                            }
+                        });
+
+                        insomnia.expect(acceptanceRes.code).to.be.oneOf([200, 201]);
+
+                        // ===== DISCLOSURE =====
+                        const disclosureRes = await send({
+                            url: `${insomnia.environment.get('host')}/invoice/pd/disclosure`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        documents: [{ documentNumber: docNumber }],
+                                        disclosureNumber: `DS${generateRandomNumber(10)}`,
+                                        status: "SELLER_APPROVER_ACCEPTED_RF",
+                                        buyerAmountLimit: 1000,
+                                        atcCode: "CODE1",
+                                        atcPercentage: 10,
+                                        factorRate: 5,
+                                        bankCharge: 2,
+                                        processingFee: "5",
+                                        processingFeeType: "PERCENTAGE",
+                                        chargeTo: "BUYER",
+                                        vatRate: 5,
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                    }
+                                })
+                            }
+                        });
+
+                        insomnia.expect(disclosureRes.code).to.be.oneOf([200, 201]);
+
+                        // ===== OPTIONAL DISBURSEMENT =====
+                        const disbursementRes = await send({
+                            url: `${insomnia.environment.get('host')}/invoice/pd/optional-disbursement`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        documents: [{ documentNumber: docNumber }],
+                                        status: "INVOICE_FULLY_PAID_BY_BANK_TO_SELLER",
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        referenceId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        transactionId: `UBL${generateRandomNumber(8)}`,
+                                        hasCwt: false
+                                    }
+                                })
+                            }
+                        });
+
+                        insomnia.expect(disbursementRes.code).to.be.oneOf([200, 201]);
+
+                        // ===== DIRECT CASA (BANK REJECTED) =====
+                        const directCasaRes = await send({
+                            url: `${insomnia.environment.get('host')}/group/pd/direct`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        documents: [{
+                                            number: docNumber,
+                                            requestedLoanAmount: "1000"
+                                        }],
+                                        groupId: generateRandomString(8),
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        status: "BANK_REJECTED_PAYMENT_BU2BA",
+                                        referenceId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        transactionId: `UBL${generateRandomNumber(8)}`,
+                                        modeOfPayment: "AC_PAYMENT",
+                                        remarks: "Bank Rejected PD Direct CASA"
+                                    }
+                                })
+                            }
+                        });
+
+                        insomnia.expect(directCasaRes.code).to.be.oneOf([200, 201]);
+
+                    } catch (error) {
+                        console.error("Flow Error:", error.message);
+                        throw error;
+                    }
+                });
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -3099,7 +2706,7 @@ collection:
             meta:
               id: req_f90baa5b9d854bc0882c871597c1d0f5
               created: 1773627777367
-              modified: 1773630217808
+              modified: 1774844489920
               isPrivate: false
               description: ""
               sortKey: -1773627756562
@@ -3117,625 +2724,279 @@ collection:
               - name: Content-Type
                 value: application/json
             scripts:
-              afterResponse: "insomnia.test(\"Sequential API Chain: Token -> Upload -> Approve
+              afterResponse: >-
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
                 Optional -> Acceptance -> Disclosure -> Optional Disbursement ->
-                Direct CASA = BANK ERROR\", function () {\r
-
-                \    const generateRandomString = (length) => {\r
-
-                \        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';\r
-
-                \        let result = '';\r
-
-                \        for (let i = 0; i < length; i++) {\r
-
-                \            result += chars.charAt(Math.floor(Math.random() *
-                chars.length));\r
-
-                \        }\r
-
-                \        return result;\r
-
-                \    };\r
-
-                \r
-
-                \    const generateRandomNumber = (length) => {\r
-
-                \        const chars = '0123456789';\r
-
-                \        let result = '';\r
-
-                \        for (let i = 0; i < length; i++) {\r
-
-                \            result += chars.charAt(Math.floor(Math.random() *
-                chars.length));\r
-
-                \        }\r
-
-                \        return result;\r
-
-                \    };\r
-
-                \r
-
-                \    const tokenResponse = insomnia.response.json();\r
-
-                \r
-
-                \    if (tokenResponse.success === true) {\r
-
-                \        const token = tokenResponse.result;\r
-
-                \        insomnia.environment.set(\"blockchain_token\",
-                token);\r
-
-                \r
-
-                \        const batchId = generateRandomString(10);\r
-
-                \        const generatedDocNum = generateRandomString(12);\r
-
-                \r
-
-                \        const date = new Date();\r
-
-                \        const randomDays = Math.floor(Math.random() * 30) +
-                1;\r
-
-                \        date.setDate(date.getDate() + randomDays);\r
-
-                \r
-
-                \        const futureDueDate =
-                date.toISOString().split('T')[0];\r
-
-                \        const today = new Date().toISOString().split('T')[0];\r
-
-                \r
-
-                \        const uploadRequest = {\r
-
-                \            url:
-                `${insomnia.environment.get('host')}/invoice/upload`,\r
-
-                \            method: \"POST\",\r
-
-                \            header: {\r
-
-                \                \"Content-Type\": \"application/json\",\r
-
-                \                \"Authorization\": `Bearer ${token}`\r
-
-                \            },\r
-
-                \            body: {\r
-
-                \                mode: 'raw',\r
-
-                \                raw: JSON.stringify({\r
-
-                \                    \"role\": \"BUYER\",\r
-
-                \                    \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                    \"uploadCode\": \"internal\",\r
-
-                \                    \"data\": {\r
-
-                \                        \"batchId\": batchId,\r
-
-                \                        \"fileName\": \"uploadfile.csv\",\r
-
-                \                        \"orgCode\": \"EBC\",\r
-
-                \                        \"role\": \"BUYER\",\r
-
-                \                        \"documents\": [{\r
-
-                \                            \"documentNumber\":
-                generatedDocNum,\r
-
-                \                            \"documentType\": \"IN\",\r
-
-                \                            \"buyerCode\": \"EBC\",\r
-
-                \                            \"buyerName\": \"Example Buyer
-                Company\",\r
-
-                \                            \"sellerCode\": \"ESC\",\r
-
-                \                            \"sellerName\": \"Example Seller
-                Company\",\r
-
-                \                            \"transactionDate\": today,\r
-
-                \                            \"deliveryDate\": today,\r
-
-                \                            \"dueDate\": futureDueDate,\r
-
-                \                            \"currency\": \"PHP\",\r
-
-                \                            \"outstandingAmount\": 1000,\r
-
-                \                            \"totalAmount\": \"1000.00\",\r
-
-                \                            \"prioritySeller\": true\r
-
-                \                        }]\r
-
-                \                    }\r
-
-                \                })\r
-
-                \            }\r
-
-                \        };\r
-
-                \r
-
-                \        insomnia.sendRequest(uploadRequest, (err, res) => {\r
-
-                \            insomnia.test(\"PD Flow: Invoice Upload (Buyer
-                Maker) -> BUYER_MAKER_REQUEST_DOCUMENT_APPROVAL\", () => {\r
-
-                \                insomnia.expect(res.code).to.be.oneOf([200,
-                201]);\r
-
-                \            });\r
-
-                \            if (err) return console.error(\"Upload API
-                Error:\", err);\r
-
-                \r
-
-                \            const uploadData = res.json();\r
-
-                \r
-
-                \            if (uploadData.success && uploadData.result &&
-                uploadData.result.length > 0) {\r
-
-                \                const docNumberFromResponse =
-                uploadData.result[0].documentNumber;\r
-
-                \                const pdApproveOptionalPayload = {\r
-
-                \                    \"data\": {\r
-
-                \                        \"documents\": [\r
-
-                \                            { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                        ],\r
-
-                \                        \"status\":
-                \"BUYER_CHECKER_APPROVED_DOCUMENT\",\r
-
-                \                        \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                        \"rfFlag\": \"OPTIONAL\",\r
-
-                \                        \"buyerAmountLimit\": \"1000\",\r
-
-                \                        \"discountingType\": \"TYPE\",\r
-
-                \                        \"lendingTag\": \"TAG\"\r
-
-                \                    }\r
-
-                \                }\r
-
-                \r
-
-                \                const pdApproveOptionalRequest = {\r
-
-                \                    url:
-                `${insomnia.environment.get('host')}/invoice/pd/approval`,\r
-
-                \                    method: \"PUT\",\r
-
-                \                    header: {\r
-
-                \                        \"Content-Type\":
-                \"application/json\",\r
-
-                \                        \"Authorization\": `Bearer ${token}`\r
-
-                \                    },\r
-
-                \                    body: {\r
-
-                \                        mode: 'raw',\r
-
-                \                        raw:
-                JSON.stringify(pdApproveOptionalPayload)\r
-
-                \                    }\r
-
-                \                };\r
-
-                \r
-
-                \                insomnia.sendRequest(pdApproveOptionalRequest,
-                (err, pdApproveOptionalResponse) => {\r
-
-                \                    insomnia.test(\"PD Flow: Approve Optional
-                (Buyer Checker) -> BUYER_CHECKER_APPROVED_DOCUMENT\", () => {\r
-
-                \                        insomnia.expect(pdApproveOptionalRespo\
-                nse.code).to.be.oneOf([200, 201]);\r
-
-                \                    });\r
-
-                \r
-
-                \                    if (err) return console.error(\"PD Approve
-                Optional API Error:\", err);\r
-
-                \r
-
-                \                    const pdAcceptancePayload = {\r
-
-                \                        \"data\": {\r
-
-                \                            \"documents\": [\r
-
-                \                                { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                            ],\r
-
-                \                            \"status\":
-                \"SELLER_MAKER_ACCEPTED_RF\",\r
-
-                \                            \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                        }\r
-
-                \                    }\r
-
-                \r
-
-                \                    const pdAcceptanceRequest = {\r
-
-                \                        url:
-                `${insomnia.environment.get('host')}/invoice/pd/acceptance`,\r
-
-                \                        method: \"PUT\",\r
-
-                \                        header: {\r
-
-                \                            \"Content-Type\":
-                \"application/json\",\r
-
-                \                            \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                        },\r
-
-                \                        body: {\r
-
-                \                            mode: 'raw',\r
-
-                \                            raw:
-                JSON.stringify(pdAcceptancePayload)\r
-
-                \                        }\r
-
-                \                    };\r
-
-                \r
-
-                \                    insomnia.sendRequest(pdAcceptanceRequest,
-                (err, pdAcceptanceResponse) => {\r
-
-                \                        insomnia.test(\"PD Flow: Acceptance
-                (Seller Maker) -> SELLER_MAKER_ACCEPTED_RF\", () => {\r
-
-                \                            insomnia.expect(pdAcceptanceRespon\
-                se.code).to.be.oneOf([200, 201]);\r
-
-                \                        });\r
-
-                \r
-
-                \                        if (err) return console.error(\"PD
-                Acceptance API Error:\", err);\r
-
-                \r
-
-                \                        const pdDisclosurePayload = {\r
-
-                \                            \"data\": {\r
-
-                \                                \"documents\": [\r
-
-                \                                    { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                                ],\r
-
-                \                                \"disclosureNumber\":
-                `DS${generateRandomNumber(10)}`,\r
-
-                \                                \"status\":
-                \"SELLER_APPROVER_ACCEPTED_RF\",\r
-
-                \                                \"buyerAmountLimit\": 1000,\r
-
-                \                                \"atcCode\": \"CODE1\",\r
-
-                \                                \"atcPercentage\": 10,\r
-
-                \                                \"factorRate\": 5,\r
-
-                \                                \"bankCharge\": 2,\r
-
-                \                                \"processingFee\": \"5\",\r
-
-                \                                \"processingFeeType\":
-                \"PERCENTAGE\",\r
-
-                \                                \"chargeTo\": \"BUYER\",\r
-
-                \                                \"vatRate\": 5,\r
-
-                \                                \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                            }\r
-
-                \                        }\r
-
-                \r
-
-                \                        const pdDisclosureRequest = {\r
-
-                \                            url:
-                `${insomnia.environment.get('host')}/invoice/pd/disclosure`,\r
-
-                \                            method: \"POST\",\r
-
-                \                            header: {\r
-
-                \                                \"Content-Type\":
-                \"application/json\",\r
-
-                \                                \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                            },\r
-
-                \                            body: {\r
-
-                \                                mode: 'raw',\r
-
-                \                                raw:
-                JSON.stringify(pdDisclosurePayload)\r
-
-                \                            }\r
-
-                \                        };\r
-
-                \r
-
-                \                        insomnia.sendRequest(pdDisclosureReque\
-                st, (err, pdDisclosureResponse) => {\r
-
-                \                            insomnia.test(\"PD Flow: PD
-                Disclosure -> SELLER_APPROVER_ACCEPTED_RF\", () => {\r
-
-                \                                insomnia.expect(pdDisclosureRe\
-                sponse.code).to.be.oneOf([200, 201]);\r
-
-                \                            });\r
-
-                \r
-
-                \                            if (err) return console.error(\"PD
-                Disclosure API Error:\", err);\r
-
-                \r
-
-                \                            const pdOptionalDisbursementPayload
-                = {\r
-
-                \                                \"data\": {\r
-
-                \                                    \"documents\": [\r
-
-                \                                        { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                                    ],\r
-
-                \                                    \"status\":
-                \"INVOICE_FULLY_PAID_BY_BANK_TO_SELLER\",\r
-
-                \                                    \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                    \"referenceId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                    \"transactionId\":
-                `UBL${generateRandomNumber(8)}`,\r
-
-                \                                    \"hasCwt\": false\r
-
-                \                                }\r
-
-                \                            }\r
-
-                \r
-
-                \                            const pdOptionalDisbursementRequest
-                = {\r
-
-                \                                url:
-                `${insomnia.environment.get('host')}/invoice/pd/optional-disbur\
-                sement`,\r
-
-                \                                method: \"PUT\",\r
-
-                \                                header: {\r
-
-                \                                    \"Content-Type\":
-                \"application/json\",\r
-
-                \                                    \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                                },\r
-
-                \                                body: {\r
-
-                \                                    mode: 'raw',\r
-
-                \                                    raw:
-                JSON.stringify(pdOptionalDisbursementPayload)\r
-
-                \                                }\r
-
-                \                            };\r
-
-                \r
-
-                \                            insomnia.sendRequest(pdOptionalDis\
-                bursementRequest, (err, pdAOptionalDisbursementResponse) => {\r
-
-                \                                insomnia.test(\"PD Flow:
-                Optional Disbursement (Discounted) ->
-                INVOICE_FULLY_PAID_BY_BANK_TO_SELLER\", () => {\r
-
-                \                                    insomnia.expect(pdAOptiona\
-                lDisbursementResponse.code).to.be.oneOf([200, 201]);\r
-
-                \                                });\r
-
-                \r
-
-                \                                if (err) return
-                console.error(\"PD Optional Disbursement API Error:\", err);\r
-
-                \r
-
-                \                                const groupId =
-                generateRandomString(8);\r
-
-                \r
-
-                \                                const pdDirectCasaGroupPayload
-                = {\r
-
-                \                                    \"data\": {\r
-
-                \                                        \"documents\": [\r
-
-                \                                            {\r
-
-                \                                                \"number\":
-                docNumberFromResponse,\r
-
-                \                                                \"requestedLoa\
-                nAmount\": \"1000\"\r
-
-                \                                            }\r
-
-                \                                        ],\r
-
-                \                                        \"groupId\": groupId,\r
-
-                \                                        \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                        \"status\":
-                \"BANK_ERROR_BU2BA\",\r
-
-                \                                        \"referenceId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                        \"modeOfPayment\":
-                \"AC_PAYMENT\",\r
-
-                \                                        \"remarks\": \"Bank
-                Error PD Direct CASA\"\r
-
-                \                                    }\r
-
-                \                                }\r
-
-                \r
-
-                \                                const pdDirectCasaGroupRequest
-                = {\r
-
-                \                                    url:
-                `${insomnia.environment.get('host')}/group/pd/direct`,\r
-
-                \                                    method: \"POST\",\r
-
-                \                                    header: {\r
-
-                \                                        \"Content-Type\":
-                \"application/json\",\r
-
-                \                                        \"Authorization\":
-                `Bearer ${token}`\r
-
-                \                                    },\r
-
-                \                                    body: {\r
-
-                \                                        mode: 'raw',\r
-
-                \                                        raw:
-                JSON.stringify(pdDirectCasaGroupPayload)\r
-
-                \                                    }\r
-
-                \                                };\r
-
-                \r
-
-                \                                insomnia.sendRequest(pdDirectC\
-                asaGroupRequest, (err, pdDirectCasaGroupResponse) => {\r
-
-                \                                    insomnia.test(\"PD Flow
-                Complete: Create Direct CASA Group -> BANK ERROR\", () => {\r
-
-                \                                        insomnia.expect(pdDire\
-                ctCasaGroupResponse.code).to.be.oneOf([200, 201]);\r
-
-                \                                    });\r
-
-                \                                });\r
-
-                \                            });\r
-
-                \                        });\r
-
-                \                    });\r
-
-                \                });\r
-
-                \            } else {\r
-
-                \                console.error(\"Upload failed to return a
-                document number.\");\r
-
-                \            }\r
-
-                \        });\r
-
-                \    }\r
-
-                });"
+                Direct CASA = BANK ERROR", async function () {
+
+                    const generateRandomString = (length) => {
+                        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
+
+                    const generateRandomNumber = (length) => {
+                        const chars = '0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
+
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
+
+                    try {
+
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success === true) {
+
+                            const token = tokenResponse.result;
+                            insomnia.environment.set("blockchain_token", token);
+
+                            const batchId = generateRandomString(10);
+                            const generatedDocNum = generateRandomString(12);
+
+                            const date = new Date();
+                            const randomDays = Math.floor(Math.random() * 30) + 1;
+                            date.setDate(date.getDate() + randomDays);
+
+                            const futureDueDate = date.toISOString().split('T')[0];
+                            const today = new Date().toISOString().split('T')[0];
+
+                            const uploadRequest = {
+                                url: `${insomnia.environment.get('host')}/invoice/upload`,
+                                method: "POST",
+                                header: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": `Bearer ${token}`
+                                },
+                                body: {
+                                    mode: 'raw',
+                                    raw: JSON.stringify({
+                                        "role": "BUYER",
+                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "uploadCode": "internal",
+                                        "data": {
+                                            "batchId": batchId,
+                                            "fileName": "uploadfile.csv",
+                                            "orgCode": "EBC",
+                                            "role": "BUYER",
+                                            "documents": [{
+                                                "documentNumber": generatedDocNum,
+                                                "documentType": "IN",
+                                                "buyerCode": "EBC",
+                                                "buyerName": "Example Buyer Company",
+                                                "sellerCode": "ESC",
+                                                "sellerName": "Example Seller Company",
+                                                "transactionDate": today,
+                                                "deliveryDate": today,
+                                                "dueDate": futureDueDate,
+                                                "currency": "PHP",
+                                                "outstandingAmount": 1000,
+                                                "totalAmount": "1000.00",
+                                                "prioritySeller": true
+                                            }]
+                                        }
+                                    })
+                                }
+                            };
+
+                            const res = await send(uploadRequest);
+
+                            insomnia.test("PD Flow: Invoice Upload (Buyer Maker) -> BUYER_MAKER_REQUEST_DOCUMENT_APPROVAL", () => {
+                                insomnia.expect(res.code).to.be.oneOf([200, 201]);
+                            });
+
+                            const uploadData = res.json();
+
+                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
+
+                                const docNumberFromResponse = uploadData.result[0].documentNumber;
+
+                                const pdApproveOptionalRequest = {
+                                    url: `${insomnia.environment.get('host')}/invoice/pd/approval`,
+                                    method: "PUT",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    { "documentNumber": docNumberFromResponse }
+                                                ],
+                                                "status": "BUYER_CHECKER_APPROVED_DOCUMENT",
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "rfFlag": "OPTIONAL",
+                                                "buyerAmountLimit": "1000",
+                                                "discountingType": "TYPE",
+                                                "lendingTag": "TAG"
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdApproveOptionalResponse = await send(pdApproveOptionalRequest);
+
+                                insomnia.test("PD Flow: Approve Optional (Buyer Checker) -> BUYER_CHECKER_APPROVED_DOCUMENT", () => {
+                                    insomnia.expect(pdApproveOptionalResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const pdAcceptanceRequest = {
+                                    url: `${insomnia.environment.get('host')}/invoice/pd/acceptance`,
+                                    method: "PUT",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    { "documentNumber": docNumberFromResponse }
+                                                ],
+                                                "status": "SELLER_MAKER_ACCEPTED_RF",
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdAcceptanceResponse = await send(pdAcceptanceRequest);
+
+                                insomnia.test("PD Flow: Acceptance (Seller Maker) -> SELLER_MAKER_ACCEPTED_RF", () => {
+                                    insomnia.expect(pdAcceptanceResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const pdDisclosureRequest = {
+                                    url: `${insomnia.environment.get('host')}/invoice/pd/disclosure`,
+                                    method: "POST",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    { "documentNumber": docNumberFromResponse }
+                                                ],
+                                                "disclosureNumber": `DS${generateRandomNumber(10)}`,
+                                                "status": "SELLER_APPROVER_ACCEPTED_RF",
+                                                "buyerAmountLimit": 1000,
+                                                "atcCode": "CODE1",
+                                                "atcPercentage": 10,
+                                                "factorRate": 5,
+                                                "bankCharge": 2,
+                                                "processingFee": "5",
+                                                "processingFeeType": "PERCENTAGE",
+                                                "chargeTo": "BUYER",
+                                                "vatRate": 5,
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdDisclosureResponse = await send(pdDisclosureRequest);
+
+                                insomnia.test("PD Flow: PD Disclosure -> SELLER_APPROVER_ACCEPTED_RF", () => {
+                                    insomnia.expect(pdDisclosureResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const pdOptionalDisbursementRequest = {
+                                    url: `${insomnia.environment.get('host')}/invoice/pd/optional-disbursement`,
+                                    method: "PUT",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    { "documentNumber": docNumberFromResponse }
+                                                ],
+                                                "status": "INVOICE_FULLY_PAID_BY_BANK_TO_SELLER",
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "transactionId": `UBL${generateRandomNumber(8)}`,
+                                                "hasCwt": false
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdAOptionalDisbursementResponse = await send(pdOptionalDisbursementRequest);
+
+                                insomnia.test("PD Flow: Optional Disbursement (Discounted) -> INVOICE_FULLY_PAID_BY_BANK_TO_SELLER", () => {
+                                    insomnia.expect(pdAOptionalDisbursementResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const groupId = generateRandomString(8);
+
+                                const pdDirectCasaGroupRequest = {
+                                    url: `${insomnia.environment.get('host')}/group/pd/direct`,
+                                    method: "POST",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    {
+                                                        "number": docNumberFromResponse,
+                                                        "requestedLoanAmount": "1000"
+                                                    }
+                                                ],
+                                                "groupId": groupId,
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "status": "BANK_ERROR_BU2BA",
+                                                "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "modeOfPayment": "AC_PAYMENT",
+                                                "remarks": "Bank Error PD Direct CASA"
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdDirectCasaGroupResponse = await send(pdDirectCasaGroupRequest);
+
+                                insomnia.test("PD Flow Complete: Create Direct CASA Group -> BANK ERROR", () => {
+                                    insomnia.expect(pdDirectCasaGroupResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                            } else {
+                                console.error("Upload failed to return a document number.");
+                            }
+                        }
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
+                    }
+
+                });
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -3750,7 +3011,7 @@ collection:
             meta:
               id: req_b29d610e950b48969e02126a0b7faa16
               created: 1773627777370
-              modified: 1773630217798
+              modified: 1774844685294
               isPrivate: false
               description: ""
               sortKey: -1773627756561
@@ -3768,695 +3029,303 @@ collection:
               - name: Content-Type
                 value: application/json
             scripts:
-              afterResponse: "insomnia.test(\"Sequential API Chain: Token -> Upload -> Approve
+              afterResponse: >-
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
                 Optional -> Acceptance -> Disclosure -> Optional Disbursement ->
-                Create Group -> Group Approval = PAID\", function () {\r
-
-                \    const generateRandomString = (length) => {\r
-
-                \        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';\r
-
-                \        let result = '';\r
-
-                \        for (let i = 0; i < length; i++) {\r
-
-                \            result += chars.charAt(Math.floor(Math.random() *
-                chars.length));\r
-
-                \        }\r
-
-                \        return result;\r
-
-                \    };\r
-
-                \r
-
-                \    const generateRandomNumber = (length) => {\r
-
-                \        const chars = '0123456789';\r
-
-                \        let result = '';\r
-
-                \        for (let i = 0; i < length; i++) {\r
-
-                \            result += chars.charAt(Math.floor(Math.random() *
-                chars.length));\r
-
-                \        }\r
-
-                \        return result;\r
-
-                \    };\r
-
-                \r
-
-                \    const tokenResponse = insomnia.response.json();\r
-
-                \r
-
-                \    if (tokenResponse.success === true) {\r
-
-                \        const token = tokenResponse.result;\r
-
-                \        insomnia.environment.set(\"blockchain_token\",
-                token);\r
-
-                \r
-
-                \        const batchId = generateRandomString(10);\r
-
-                \        const generatedDocNum = generateRandomString(12);\r
-
-                \r
-
-                \        const date = new Date();\r
-
-                \        const randomDays = Math.floor(Math.random() * 30) +
-                1;\r
-
-                \        date.setDate(date.getDate() + randomDays);\r
-
-                \r
-
-                \        const futureDueDate =
-                date.toISOString().split('T')[0];\r
-
-                \        const today = new Date().toISOString().split('T')[0];\r
-
-                \r
-
-                \        const uploadRequest = {\r
-
-                \            url:
-                `${insomnia.environment.get('host')}/invoice/upload`,\r
-
-                \            method: \"POST\",\r
-
-                \            header: {\r
-
-                \                \"Content-Type\": \"application/json\",\r
-
-                \                \"Authorization\": `Bearer ${token}`\r
-
-                \            },\r
-
-                \            body: {\r
-
-                \                mode: 'raw',\r
-
-                \                raw: JSON.stringify({\r
-
-                \                    \"role\": \"BUYER\",\r
-
-                \                    \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                    \"uploadCode\": \"internal\",\r
-
-                \                    \"data\": {\r
-
-                \                        \"batchId\": batchId,\r
-
-                \                        \"fileName\": \"uploadfile.csv\",\r
-
-                \                        \"orgCode\": \"EBC\",\r
-
-                \                        \"role\": \"BUYER\",\r
-
-                \                        \"documents\": [{\r
-
-                \                            \"documentNumber\":
-                generatedDocNum,\r
-
-                \                            \"documentType\": \"IN\",\r
-
-                \                            \"buyerCode\": \"EBC\",\r
-
-                \                            \"buyerName\": \"Example Buyer
-                Company\",\r
-
-                \                            \"sellerCode\": \"ESC\",\r
-
-                \                            \"sellerName\": \"Example Seller
-                Company\",\r
-
-                \                            \"transactionDate\": today,\r
-
-                \                            \"deliveryDate\": today,\r
-
-                \                            \"dueDate\": futureDueDate,\r
-
-                \                            \"currency\": \"PHP\",\r
-
-                \                            \"outstandingAmount\": 1000,\r
-
-                \                            \"totalAmount\": \"1000.00\",\r
-
-                \                            \"prioritySeller\": true\r
-
-                \                        }]\r
-
-                \                    }\r
-
-                \                })\r
-
-                \            }\r
-
-                \        };\r
-
-                \r
-
-                \        insomnia.sendRequest(uploadRequest, (err, res) => {\r
-
-                \            insomnia.test(\"PD Flow: Invoice Upload (Buyer
-                Maker) -> BUYER_MAKER_REQUEST_DOCUMENT_APPROVAL\", () => {\r
-
-                \                insomnia.expect(res.code).to.be.oneOf([200,
-                201]);\r
-
-                \            });\r
-
-                \            if (err) return console.error(\"Upload API
-                Error:\", err);\r
-
-                \r
-
-                \            const uploadData = res.json();\r
-
-                \r
-
-                \            if (uploadData.success && uploadData.result &&
-                uploadData.result.length > 0) {\r
-
-                \                const docNumberFromResponse =
-                uploadData.result[0].documentNumber;\r
-
-                \                const pdApproveOptionalPayload = {\r
-
-                \                    \"data\": {\r
-
-                \                        \"documents\": [\r
-
-                \                            { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                        ],\r
-
-                \                        \"status\":
-                \"BUYER_CHECKER_APPROVED_DOCUMENT\",\r
-
-                \                        \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                        \"rfFlag\": \"OPTIONAL\",\r
-
-                \                        \"buyerAmountLimit\": \"1000\",\r
-
-                \                        \"discountingType\": \"TYPE\",\r
-
-                \                        \"lendingTag\": \"TAG\"\r
-
-                \                    }\r
-
-                \                }\r
-
-                \r
-
-                \                const pdApproveOptionalRequest = {\r
-
-                \                    url:
-                `${insomnia.environment.get('host')}/invoice/pd/approval`,\r
-
-                \                    method: \"PUT\",\r
-
-                \                    header: {\r
-
-                \                        \"Content-Type\":
-                \"application/json\",\r
-
-                \                        \"Authorization\": `Bearer ${token}`\r
-
-                \                    },\r
-
-                \                    body: {\r
-
-                \                        mode: 'raw',\r
-
-                \                        raw:
-                JSON.stringify(pdApproveOptionalPayload)\r
-
-                \                    }\r
-
-                \                };\r
-
-                \r
-
-                \                insomnia.sendRequest(pdApproveOptionalRequest,
-                (err, pdApproveOptionalResponse) => {\r
-
-                \                    insomnia.test(\"PD Flow: Approve Optional
-                (Buyer Checker) -> BUYER_CHECKER_APPROVED_DOCUMENT\", () => {\r
-
-                \                        insomnia.expect(pdApproveOptionalRespo\
-                nse.code).to.be.oneOf([200, 201]);\r
-
-                \                    });\r
-
-                \r
-
-                \                    if (err) return console.error(\"PD Approve
-                Optional API Error:\", err);\r
-
-                \r
-
-                \                    const pdAcceptancePayload = {\r
-
-                \                        \"data\": {\r
-
-                \                            \"documents\": [\r
-
-                \                                { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                            ],\r
-
-                \                            \"status\":
-                \"SELLER_MAKER_ACCEPTED_RF\",\r
-
-                \                            \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                        }\r
-
-                \                    }\r
-
-                \r
-
-                \                    const pdAcceptanceRequest = {\r
-
-                \                        url:
-                `${insomnia.environment.get('host')}/invoice/pd/acceptance`,\r
-
-                \                        method: \"PUT\",\r
-
-                \                        header: {\r
-
-                \                            \"Content-Type\":
-                \"application/json\",\r
-
-                \                            \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                        },\r
-
-                \                        body: {\r
-
-                \                            mode: 'raw',\r
-
-                \                            raw:
-                JSON.stringify(pdAcceptancePayload)\r
-
-                \                        }\r
-
-                \                    };\r
-
-                \r
-
-                \                    insomnia.sendRequest(pdAcceptanceRequest,
-                (err, pdAcceptanceResponse) => {\r
-
-                \                        insomnia.test(\"PD Flow: Acceptance
-                (Seller Maker) -> SELLER_MAKER_ACCEPTED_RF\", () => {\r
-
-                \                            insomnia.expect(pdAcceptanceRespon\
-                se.code).to.be.oneOf([200, 201]);\r
-
-                \                        });\r
-
-                \r
-
-                \                        if (err) return console.error(\"PD
-                Acceptance API Error:\", err);\r
-
-                \r
-
-                \                        const pdDisclosurePayload = {\r
-
-                \                            \"data\": {\r
-
-                \                                \"documents\": [\r
-
-                \                                    { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                                ],\r
-
-                \                                \"disclosureNumber\":
-                `DS${generateRandomNumber(10)}`,\r
-
-                \                                \"status\":
-                \"SELLER_APPROVER_ACCEPTED_RF\",\r
-
-                \                                \"buyerAmountLimit\": 1000,\r
-
-                \                                \"atcCode\": \"CODE1\",\r
-
-                \                                \"atcPercentage\": 10,\r
-
-                \                                \"factorRate\": 5,\r
-
-                \                                \"bankCharge\": 2,\r
-
-                \                                \"processingFee\": \"5\",\r
-
-                \                                \"processingFeeType\":
-                \"PERCENTAGE\",\r
-
-                \                                \"chargeTo\": \"BUYER\",\r
-
-                \                                \"vatRate\": 5,\r
-
-                \                                \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                            }\r
-
-                \                        }\r
-
-                \r
-
-                \                        const pdDisclosureRequest = {\r
-
-                \                            url:
-                `${insomnia.environment.get('host')}/invoice/pd/disclosure`,\r
-
-                \                            method: \"POST\",\r
-
-                \                            header: {\r
-
-                \                                \"Content-Type\":
-                \"application/json\",\r
-
-                \                                \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                            },\r
-
-                \                            body: {\r
-
-                \                                mode: 'raw',\r
-
-                \                                raw:
-                JSON.stringify(pdDisclosurePayload)\r
-
-                \                            }\r
-
-                \                        };\r
-
-                \r
-
-                \                        insomnia.sendRequest(pdDisclosureReque\
-                st, (err, pdDisclosureResponse) => {\r
-
-                \                            insomnia.test(\"PD Flow: PD
-                Disclosure -> SELLER_APPROVER_ACCEPTED_RF\", () => {\r
-
-                \                                insomnia.expect(pdDisclosureRe\
-                sponse.code).to.be.oneOf([200, 201]);\r
-
-                \                            });\r
-
-                \r
-
-                \                            if (err) return console.error(\"PD
-                Disclosure API Error:\", err);\r
-
-                \r
-
-                \                            const pdOptionalDisbursementPayload
-                = {\r
-
-                \                                \"data\": {\r
-
-                \                                    \"documents\": [\r
-
-                \                                        { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                                    ],\r
-
-                \                                    \"status\":
-                \"INVOICE_FULLY_PAID_BY_BANK_TO_SELLER\",\r
-
-                \                                    \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                    \"referenceId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                    \"transactionId\":
-                `UBL${generateRandomNumber(8)}`,\r
-
-                \                                    \"hasCwt\": false\r
-
-                \                                }\r
-
-                \                            }\r
-
-                \r
-
-                \                            const pdOptionalDisbursementRequest
-                = {\r
-
-                \                                url:
-                `${insomnia.environment.get('host')}/invoice/pd/optional-disbur\
-                sement`,\r
-
-                \                                method: \"PUT\",\r
-
-                \                                header: {\r
-
-                \                                    \"Content-Type\":
-                \"application/json\",\r
-
-                \                                    \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                                },\r
-
-                \                                body: {\r
-
-                \                                    mode: 'raw',\r
-
-                \                                    raw:
-                JSON.stringify(pdOptionalDisbursementPayload)\r
-
-                \                                }\r
-
-                \                            };\r
-
-                \r
-
-                \                            insomnia.sendRequest(pdOptionalDis\
-                bursementRequest, (err, pdAOptionalDisbursementResponse) => {\r
-
-                \                                insomnia.test(\"PD Flow:
-                Optional Disbursement (Discounted) ->
-                INVOICE_FULLY_PAID_BY_BANK_TO_SELLER\", () => {\r
-
-                \                                    insomnia.expect(pdAOptiona\
-                lDisbursementResponse.code).to.be.oneOf([200, 201]);\r
-
-                \                                });\r
-
-                \r
-
-                \                                if (err) return
-                console.error(\"PD Optional Disbursement API Error:\", err);\r
-
-                \r
-
-                \                                const groupId =
-                generateRandomString(8);\r
-
-                \r
-
-                \                                const pdCreateGroupPayload =
-                {\r
-
-                \                                    \"data\": {\r
-
-                \                                        \"documents\": [\r
-
-                \                                            {\r
-
-                \                                                \"number\":
-                docNumberFromResponse,\r
-
-                \                                                \"requestedLoa\
-                nAmount\": \"1000\"\r
-
-                \                                            }\r
-
-                \                                        ],\r
-
-                \                                        \"groupId\": groupId,\r
-
-                \                                        \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                        \"modeOfPayment\":
-                \"AC_PAYMENT\"\r
-
-                \                                    }\r
-
-                \                                }\r
-
-                \r
-
-                \                                const pdCreateGroupRequest =
-                {\r
-
-                \                                    url:
-                `${insomnia.environment.get('host')}/group/pd/create`,\r
-
-                \                                    method: \"POST\",\r
-
-                \                                    header: {\r
-
-                \                                        \"Content-Type\":
-                \"application/json\",\r
-
-                \                                        \"Authorization\":
-                `Bearer ${token}`\r
-
-                \                                    },\r
-
-                \                                    body: {\r
-
-                \                                        mode: 'raw',\r
-
-                \                                        raw:
-                JSON.stringify(pdCreateGroupPayload)\r
-
-                \                                    }\r
-
-                \                                };\r
-
-                \r
-
-                \                                insomnia.sendRequest(pdCreateG\
-                roupRequest, (err, pdCreateGroupResponse) => {\r
-
-                \                                    insomnia.test(\"PD Flow:
-                Create Group (For Approval)\", () => {\r
-
-                \                                        insomnia.expect(pdCrea\
-                teGroupResponse.code).to.be.oneOf([200, 201]);\r
-
-                \                                    });\r
-
-                \r
-
-                \                                    if (err) return
-                console.error(\"PD Create Group API Error:\", err);\r
-
-                \r
-
-                \                                    const
-                pdGroupApprovalPayload = {\r
-
-                \                                        \"data\": {\r
-
-                \                                            \"groupId\":
-                groupId,\r
-
-                \                                            \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                            \"status\":
-                \"FUND_DISBURSED\",\r
-
-                \                                            \"referenceId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                            \"transactionId\":
-                `UBL${generateRandomNumber(8)}`,\r
-
-                \                                            \"hasCwt\": false\r
-
-                \                                        }\r
-
-                \                                    }\r
-
-                \r
-
-                \                                    const
-                pdGroupApprovalRequest = {\r
-
-                \                                        url:
-                `${insomnia.environment.get('host')}/group/pd/approval`,\r
-
-                \                                        method: \"PUT\",\r
-
-                \                                        header: {\r
-
-                \                                            \"Content-Type\":
-                \"application/json\",\r
-
-                \                                            \"Authorization\":
-                `Bearer ${token}`\r
-
-                \                                        },\r
-
-                \                                        body: {\r
-
-                \                                            mode: 'raw',\r
-
-                \                                            raw:
-                JSON.stringify(pdGroupApprovalPayload)\r
-
-                \                                        }\r
-
-                \                                    };\r
-
-                \r
-
-                \                                    insomnia.sendRequest(pdGro\
-                upApprovalRequest, (err, pdGroupApprovalResponse) => {\r
-
-                \                                        insomnia.test(\"PD Flow
-                Complete: Group Approval -> PAID\", () => {\r
-
-                \                                            insomnia.expect(pd\
-                GroupApprovalResponse.code).to.be.oneOf([200, 201]);\r
-
-                \                                        });\r
-
-                \                                    });\r
-
-                \                                });\r
-
-                \                            });\r
-
-                \                        });\r
-
-                \                    });\r
-
-                \                });\r
-
-                \            } else {\r
-
-                \                console.error(\"Upload failed to return a
-                document number.\");\r
-
-                \            }\r
-
-                \        });\r
-
-                \    }\r
-
-                });"
+                Create Group -> Group Approval = PAID", async function () {
+
+                    const generateRandomString = (length) => {
+                        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
+
+                    const generateRandomNumber = (length) => {
+                        const chars = '0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
+
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
+
+                    try {
+
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success === true) {
+                            const token = tokenResponse.result;
+                            insomnia.environment.set("blockchain_token", token);
+
+                            const batchId = generateRandomString(10);
+                            const generatedDocNum = generateRandomString(12);
+
+                            const date = new Date();
+                            const randomDays = Math.floor(Math.random() * 30) + 1;
+                            date.setDate(date.getDate() + randomDays);
+
+                            const futureDueDate = date.toISOString().split('T')[0];
+                            const today = new Date().toISOString().split('T')[0];
+
+                            const uploadRequest = {
+                                url: `${insomnia.environment.get('host')}/invoice/upload`,
+                                method: "POST",
+                                header: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": `Bearer ${token}`
+                                },
+                                body: {
+                                    mode: 'raw',
+                                    raw: JSON.stringify({
+                                        "role": "BUYER",
+                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "uploadCode": "internal",
+                                        "data": {
+                                            "batchId": batchId,
+                                            "fileName": "uploadfile.csv",
+                                            "orgCode": "EBC",
+                                            "role": "BUYER",
+                                            "documents": [{
+                                                "documentNumber": generatedDocNum,
+                                                "documentType": "IN",
+                                                "buyerCode": "EBC",
+                                                "buyerName": "Example Buyer Company",
+                                                "sellerCode": "ESC",
+                                                "sellerName": "Example Seller Company",
+                                                "transactionDate": today,
+                                                "deliveryDate": today,
+                                                "dueDate": futureDueDate,
+                                                "currency": "PHP",
+                                                "outstandingAmount": 1000,
+                                                "totalAmount": "1000.00",
+                                                "prioritySeller": true
+                                            }]
+                                        }
+                                    })
+                                }
+                            };
+
+                            const res = await send(uploadRequest);
+
+                            insomnia.test("PD Flow: Invoice Upload (Buyer Maker) -> BUYER_MAKER_REQUEST_DOCUMENT_APPROVAL", () => {
+                                insomnia.expect(res.code).to.be.oneOf([200, 201]);
+                            });
+
+                            const uploadData = res.json();
+
+                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
+
+                                const docNumberFromResponse = uploadData.result[0].documentNumber;
+
+                                const pdApproveOptionalRequest = {
+                                    url: `${insomnia.environment.get('host')}/invoice/pd/approval`,
+                                    method: "PUT",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    { "documentNumber": docNumberFromResponse }
+                                                ],
+                                                "status": "BUYER_CHECKER_APPROVED_DOCUMENT",
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "rfFlag": "OPTIONAL",
+                                                "buyerAmountLimit": "1000",
+                                                "discountingType": "TYPE",
+                                                "lendingTag": "TAG"
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdApproveOptionalResponse = await send(pdApproveOptionalRequest);
+
+                                insomnia.test("PD Flow: Approve Optional (Buyer Checker) -> BUYER_CHECKER_APPROVED_DOCUMENT", () => {
+                                    insomnia.expect(pdApproveOptionalResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const pdAcceptanceRequest = {
+                                    url: `${insomnia.environment.get('host')}/invoice/pd/acceptance`,
+                                    method: "PUT",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    { "documentNumber": docNumberFromResponse }
+                                                ],
+                                                "status": "SELLER_MAKER_ACCEPTED_RF",
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdAcceptanceResponse = await send(pdAcceptanceRequest);
+
+                                insomnia.test("PD Flow: Acceptance (Seller Maker) -> SELLER_MAKER_ACCEPTED_RF", () => {
+                                    insomnia.expect(pdAcceptanceResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const pdDisclosureRequest = {
+                                    url: `${insomnia.environment.get('host')}/invoice/pd/disclosure`,
+                                    method: "POST",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    { "documentNumber": docNumberFromResponse }
+                                                ],
+                                                "disclosureNumber": `DS${generateRandomNumber(10)}`,
+                                                "status": "SELLER_APPROVER_ACCEPTED_RF",
+                                                "buyerAmountLimit": 1000,
+                                                "atcCode": "CODE1",
+                                                "atcPercentage": 10,
+                                                "factorRate": 5,
+                                                "bankCharge": 2,
+                                                "processingFee": "5",
+                                                "processingFeeType": "PERCENTAGE",
+                                                "chargeTo": "BUYER",
+                                                "vatRate": 5,
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdDisclosureResponse = await send(pdDisclosureRequest);
+
+                                insomnia.test("PD Flow: PD Disclosure -> SELLER_APPROVER_ACCEPTED_RF", () => {
+                                    insomnia.expect(pdDisclosureResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const pdOptionalDisbursementRequest = {
+                                    url: `${insomnia.environment.get('host')}/invoice/pd/optional-disbursement`,
+                                    method: "PUT",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    { "documentNumber": docNumberFromResponse }
+                                                ],
+                                                "status": "INVOICE_FULLY_PAID_BY_BANK_TO_SELLER",
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "transactionId": `UBL${generateRandomNumber(8)}`,
+                                                "hasCwt": false
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdAOptionalDisbursementResponse = await send(pdOptionalDisbursementRequest);
+
+                                insomnia.test("PD Flow: Optional Disbursement (Discounted) -> INVOICE_FULLY_PAID_BY_BANK_TO_SELLER", () => {
+                                    insomnia.expect(pdAOptionalDisbursementResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const groupId = generateRandomString(8);
+
+                                const pdCreateGroupRequest = {
+                                    url: `${insomnia.environment.get('host')}/group/pd/create`,
+                                    method: "POST",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    {
+                                                        "number": docNumberFromResponse,
+                                                        "requestedLoanAmount": "1000"
+                                                    }
+                                                ],
+                                                "groupId": groupId,
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "modeOfPayment": "AC_PAYMENT"
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdCreateGroupResponse = await send(pdCreateGroupRequest);
+
+                                insomnia.test("PD Flow: Create Group (For Approval)", () => {
+                                    insomnia.expect(pdCreateGroupResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const pdGroupApprovalRequest = {
+                                    url: `${insomnia.environment.get('host')}/group/pd/approval`,
+                                    method: "PUT",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "groupId": groupId,
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "status": "FUND_DISBURSED",
+                                                "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "transactionId": `UBL${generateRandomNumber(8)}`,
+                                                "hasCwt": false
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdGroupApprovalResponse = await send(pdGroupApprovalRequest);
+
+                                insomnia.test("PD Flow Complete: Group Approval -> PAID", () => {
+                                    insomnia.expect(pdGroupApprovalResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                            } else {
+                                console.error("Upload failed to return a document number.");
+                            }
+                        }
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
+                    }
+
+                });
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -4471,7 +3340,7 @@ collection:
             meta:
               id: req_51d354ce04ba40d1bf83ca4f6e60f953
               created: 1773627777371
-              modified: 1773630217794
+              modified: 1774844833903
               isPrivate: false
               description: ""
               sortKey: -1773627756560
@@ -4489,694 +3358,303 @@ collection:
               - name: Content-Type
                 value: application/json
             scripts:
-              afterResponse: "insomnia.test(\"Sequential API Chain: Token -> Upload -> Approve
+              afterResponse: >-
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
                 Optional -> Acceptance -> Disclosure -> Optional Disbursement ->
-                Create Group -> Group Approval = BANK REJECTED\", function ()
-                {\r
-
-                \    const generateRandomString = (length) => {\r
-
-                \        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';\r
-
-                \        let result = '';\r
-
-                \        for (let i = 0; i < length; i++) {\r
-
-                \            result += chars.charAt(Math.floor(Math.random() *
-                chars.length));\r
-
-                \        }\r
-
-                \        return result;\r
-
-                \    };\r
-
-                \r
-
-                \    const generateRandomNumber = (length) => {\r
-
-                \        const chars = '0123456789';\r
-
-                \        let result = '';\r
-
-                \        for (let i = 0; i < length; i++) {\r
-
-                \            result += chars.charAt(Math.floor(Math.random() *
-                chars.length));\r
-
-                \        }\r
-
-                \        return result;\r
-
-                \    };\r
-
-                \r
-
-                \    const tokenResponse = insomnia.response.json();\r
-
-                \r
-
-                \    if (tokenResponse.success === true) {\r
-
-                \        const token = tokenResponse.result;\r
-
-                \        insomnia.environment.set(\"blockchain_token\",
-                token);\r
-
-                \r
-
-                \        const batchId = generateRandomString(10);\r
-
-                \        const generatedDocNum = generateRandomString(12);\r
-
-                \r
-
-                \        const date = new Date();\r
-
-                \        const randomDays = Math.floor(Math.random() * 30) +
-                1;\r
-
-                \        date.setDate(date.getDate() + randomDays);\r
-
-                \r
-
-                \        const futureDueDate =
-                date.toISOString().split('T')[0];\r
-
-                \        const today = new Date().toISOString().split('T')[0];\r
-
-                \r
-
-                \        const uploadRequest = {\r
-
-                \            url:
-                `${insomnia.environment.get('host')}/invoice/upload`,\r
-
-                \            method: \"POST\",\r
-
-                \            header: {\r
-
-                \                \"Content-Type\": \"application/json\",\r
-
-                \                \"Authorization\": `Bearer ${token}`\r
-
-                \            },\r
-
-                \            body: {\r
-
-                \                mode: 'raw',\r
-
-                \                raw: JSON.stringify({\r
-
-                \                    \"role\": \"BUYER\",\r
-
-                \                    \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                    \"uploadCode\": \"internal\",\r
-
-                \                    \"data\": {\r
-
-                \                        \"batchId\": batchId,\r
-
-                \                        \"fileName\": \"uploadfile.csv\",\r
-
-                \                        \"orgCode\": \"EBC\",\r
-
-                \                        \"role\": \"BUYER\",\r
-
-                \                        \"documents\": [{\r
-
-                \                            \"documentNumber\":
-                generatedDocNum,\r
-
-                \                            \"documentType\": \"IN\",\r
-
-                \                            \"buyerCode\": \"EBC\",\r
-
-                \                            \"buyerName\": \"Example Buyer
-                Company\",\r
-
-                \                            \"sellerCode\": \"ESC\",\r
-
-                \                            \"sellerName\": \"Example Seller
-                Company\",\r
-
-                \                            \"transactionDate\": today,\r
-
-                \                            \"deliveryDate\": today,\r
-
-                \                            \"dueDate\": futureDueDate,\r
-
-                \                            \"currency\": \"PHP\",\r
-
-                \                            \"outstandingAmount\": 1000,\r
-
-                \                            \"totalAmount\": \"1000.00\",\r
-
-                \                            \"prioritySeller\": true\r
-
-                \                        }]\r
-
-                \                    }\r
-
-                \                })\r
-
-                \            }\r
-
-                \        };\r
-
-                \r
-
-                \        insomnia.sendRequest(uploadRequest, (err, res) => {\r
-
-                \            insomnia.test(\"PD Flow: Invoice Upload (Buyer
-                Maker) -> BUYER_MAKER_REQUEST_DOCUMENT_APPROVAL\", () => {\r
-
-                \                insomnia.expect(res.code).to.be.oneOf([200,
-                201]);\r
-
-                \            });\r
-
-                \            if (err) return console.error(\"Upload API
-                Error:\", err);\r
-
-                \r
-
-                \            const uploadData = res.json();\r
-
-                \r
-
-                \            if (uploadData.success && uploadData.result &&
-                uploadData.result.length > 0) {\r
-
-                \                const docNumberFromResponse =
-                uploadData.result[0].documentNumber;\r
-
-                \                const pdApproveOptionalPayload = {\r
-
-                \                    \"data\": {\r
-
-                \                        \"documents\": [\r
-
-                \                            { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                        ],\r
-
-                \                        \"status\":
-                \"BUYER_CHECKER_APPROVED_DOCUMENT\",\r
-
-                \                        \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                        \"rfFlag\": \"OPTIONAL\",\r
-
-                \                        \"buyerAmountLimit\": \"1000\",\r
-
-                \                        \"discountingType\": \"TYPE\",\r
-
-                \                        \"lendingTag\": \"TAG\"\r
-
-                \                    }\r
-
-                \                }\r
-
-                \r
-
-                \                const pdApproveOptionalRequest = {\r
-
-                \                    url:
-                `${insomnia.environment.get('host')}/invoice/pd/approval`,\r
-
-                \                    method: \"PUT\",\r
-
-                \                    header: {\r
-
-                \                        \"Content-Type\":
-                \"application/json\",\r
-
-                \                        \"Authorization\": `Bearer ${token}`\r
-
-                \                    },\r
-
-                \                    body: {\r
-
-                \                        mode: 'raw',\r
-
-                \                        raw:
-                JSON.stringify(pdApproveOptionalPayload)\r
-
-                \                    }\r
-
-                \                };\r
-
-                \r
-
-                \                insomnia.sendRequest(pdApproveOptionalRequest,
-                (err, pdApproveOptionalResponse) => {\r
-
-                \                    insomnia.test(\"PD Flow: Approve Optional
-                (Buyer Checker) -> BUYER_CHECKER_APPROVED_DOCUMENT\", () => {\r
-
-                \                        insomnia.expect(pdApproveOptionalRespo\
-                nse.code).to.be.oneOf([200, 201]);\r
-
-                \                    });\r
-
-                \r
-
-                \                    if (err) return console.error(\"PD Approve
-                Optional API Error:\", err);\r
-
-                \r
-
-                \                    const pdAcceptancePayload = {\r
-
-                \                        \"data\": {\r
-
-                \                            \"documents\": [\r
-
-                \                                { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                            ],\r
-
-                \                            \"status\":
-                \"SELLER_MAKER_ACCEPTED_RF\",\r
-
-                \                            \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                        }\r
-
-                \                    }\r
-
-                \r
-
-                \                    const pdAcceptanceRequest = {\r
-
-                \                        url:
-                `${insomnia.environment.get('host')}/invoice/pd/acceptance`,\r
-
-                \                        method: \"PUT\",\r
-
-                \                        header: {\r
-
-                \                            \"Content-Type\":
-                \"application/json\",\r
-
-                \                            \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                        },\r
-
-                \                        body: {\r
-
-                \                            mode: 'raw',\r
-
-                \                            raw:
-                JSON.stringify(pdAcceptancePayload)\r
-
-                \                        }\r
-
-                \                    };\r
-
-                \r
-
-                \                    insomnia.sendRequest(pdAcceptanceRequest,
-                (err, pdAcceptanceResponse) => {\r
-
-                \                        insomnia.test(\"PD Flow: Acceptance
-                (Seller Maker) -> SELLER_MAKER_ACCEPTED_RF\", () => {\r
-
-                \                            insomnia.expect(pdAcceptanceRespon\
-                se.code).to.be.oneOf([200, 201]);\r
-
-                \                        });\r
-
-                \r
-
-                \                        if (err) return console.error(\"PD
-                Acceptance API Error:\", err);\r
-
-                \r
-
-                \                        const pdDisclosurePayload = {\r
-
-                \                            \"data\": {\r
-
-                \                                \"documents\": [\r
-
-                \                                    { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                                ],\r
-
-                \                                \"disclosureNumber\":
-                `DS${generateRandomNumber(10)}`,\r
-
-                \                                \"status\":
-                \"SELLER_APPROVER_ACCEPTED_RF\",\r
-
-                \                                \"buyerAmountLimit\": 1000,\r
-
-                \                                \"atcCode\": \"CODE1\",\r
-
-                \                                \"atcPercentage\": 10,\r
-
-                \                                \"factorRate\": 5,\r
-
-                \                                \"bankCharge\": 2,\r
-
-                \                                \"processingFee\": \"5\",\r
-
-                \                                \"processingFeeType\":
-                \"PERCENTAGE\",\r
-
-                \                                \"chargeTo\": \"BUYER\",\r
-
-                \                                \"vatRate\": 5,\r
-
-                \                                \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                            }\r
-
-                \                        }\r
-
-                \r
-
-                \                        const pdDisclosureRequest = {\r
-
-                \                            url:
-                `${insomnia.environment.get('host')}/invoice/pd/disclosure`,\r
-
-                \                            method: \"POST\",\r
-
-                \                            header: {\r
-
-                \                                \"Content-Type\":
-                \"application/json\",\r
-
-                \                                \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                            },\r
-
-                \                            body: {\r
-
-                \                                mode: 'raw',\r
-
-                \                                raw:
-                JSON.stringify(pdDisclosurePayload)\r
-
-                \                            }\r
-
-                \                        };\r
-
-                \r
-
-                \                        insomnia.sendRequest(pdDisclosureReque\
-                st, (err, pdDisclosureResponse) => {\r
-
-                \                            insomnia.test(\"PD Flow: PD
-                Disclosure -> SELLER_APPROVER_ACCEPTED_RF\", () => {\r
-
-                \                                insomnia.expect(pdDisclosureRe\
-                sponse.code).to.be.oneOf([200, 201]);\r
-
-                \                            });\r
-
-                \r
-
-                \                            if (err) return console.error(\"PD
-                Disclosure API Error:\", err);\r
-
-                \r
-
-                \                            const pdOptionalDisbursementPayload
-                = {\r
-
-                \                                \"data\": {\r
-
-                \                                    \"documents\": [\r
-
-                \                                        { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                                    ],\r
-
-                \                                    \"status\":
-                \"INVOICE_FULLY_PAID_BY_BANK_TO_SELLER\",\r
-
-                \                                    \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                    \"referenceId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                    \"transactionId\":
-                `UBL${generateRandomNumber(8)}`,\r
-
-                \                                    \"hasCwt\": false\r
-
-                \                                }\r
-
-                \                            }\r
-
-                \r
-
-                \                            const pdOptionalDisbursementRequest
-                = {\r
-
-                \                                url:
-                `${insomnia.environment.get('host')}/invoice/pd/optional-disbur\
-                sement`,\r
-
-                \                                method: \"PUT\",\r
-
-                \                                header: {\r
-
-                \                                    \"Content-Type\":
-                \"application/json\",\r
-
-                \                                    \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                                },\r
-
-                \                                body: {\r
-
-                \                                    mode: 'raw',\r
-
-                \                                    raw:
-                JSON.stringify(pdOptionalDisbursementPayload)\r
-
-                \                                }\r
-
-                \                            };\r
-
-                \r
-
-                \                            insomnia.sendRequest(pdOptionalDis\
-                bursementRequest, (err, pdAOptionalDisbursementResponse) => {\r
-
-                \                                insomnia.test(\"PD Flow:
-                Optional Disbursement (Discounted) ->
-                INVOICE_FULLY_PAID_BY_BANK_TO_SELLER\", () => {\r
-
-                \                                    insomnia.expect(pdAOptiona\
-                lDisbursementResponse.code).to.be.oneOf([200, 201]);\r
-
-                \                                });\r
-
-                \r
-
-                \                                if (err) return
-                console.error(\"PD Optional Disbursement API Error:\", err);\r
-
-                \r
-
-                \                                const groupId =
-                generateRandomString(8);\r
-
-                \r
-
-                \                                const pdCreateGroupPayload =
-                {\r
-
-                \                                    \"data\": {\r
-
-                \                                        \"documents\": [\r
-
-                \                                            {\r
-
-                \                                                \"number\":
-                docNumberFromResponse,\r
-
-                \                                                \"requestedLoa\
-                nAmount\": \"1000\"\r
-
-                \                                            }\r
-
-                \                                        ],\r
-
-                \                                        \"groupId\": groupId,\r
-
-                \                                        \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                        \"modeOfPayment\":
-                \"AC_PAYMENT\"\r
-
-                \                                    }\r
-
-                \                                }\r
-
-                \r
-
-                \                                const pdCreateGroupRequest =
-                {\r
-
-                \                                    url:
-                `${insomnia.environment.get('host')}/group/pd/create`,\r
-
-                \                                    method: \"POST\",\r
-
-                \                                    header: {\r
-
-                \                                        \"Content-Type\":
-                \"application/json\",\r
-
-                \                                        \"Authorization\":
-                `Bearer ${token}`\r
-
-                \                                    },\r
-
-                \                                    body: {\r
-
-                \                                        mode: 'raw',\r
-
-                \                                        raw:
-                JSON.stringify(pdCreateGroupPayload)\r
-
-                \                                    }\r
-
-                \                                };\r
-
-                \r
-
-                \                                insomnia.sendRequest(pdCreateG\
-                roupRequest, (err, pdCreateGroupResponse) => {\r
-
-                \                                    insomnia.test(\"PD Flow:
-                Create Group (For Approval)\", () => {\r
-
-                \                                        insomnia.expect(pdCrea\
-                teGroupResponse.code).to.be.oneOf([200, 201]);\r
-
-                \                                    });\r
-
-                \r
-
-                \                                    if (err) return
-                console.error(\"PD Create Group API Error:\", err);\r
-
-                \r
-
-                \                                    const
-                pdGroupApprovalPayload = {\r
-
-                \                                        \"data\": {\r
-
-                \                                            \"groupId\":
-                groupId,\r
-
-                \                                            \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                            \"status\":
-                \"BANK_REJECTED_PAYMENT_BU2BA\",\r
-
-                \                                            \"referenceId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                            \"remarks\": \"Bank
-                Rejected PD Group Approval\"\r
-
-                \                                        }\r
-
-                \                                    }\r
-
-                \r
-
-                \                                    const
-                pdGroupApprovalRequest = {\r
-
-                \                                        url:
-                `${insomnia.environment.get('host')}/group/pd/approval`,\r
-
-                \                                        method: \"PUT\",\r
-
-                \                                        header: {\r
-
-                \                                            \"Content-Type\":
-                \"application/json\",\r
-
-                \                                            \"Authorization\":
-                `Bearer ${token}`\r
-
-                \                                        },\r
-
-                \                                        body: {\r
-
-                \                                            mode: 'raw',\r
-
-                \                                            raw:
-                JSON.stringify(pdGroupApprovalPayload)\r
-
-                \                                        }\r
-
-                \                                    };\r
-
-                \r
-
-                \                                    insomnia.sendRequest(pdGro\
-                upApprovalRequest, (err, pdGroupApprovalResponse) => {\r
-
-                \                                        insomnia.test(\"PD Flow
-                Complete: Group Approval -> BANK REJECTED\", () => {\r
-
-                \                                            insomnia.expect(pd\
-                GroupApprovalResponse.code).to.be.oneOf([200, 201]);\r
-
-                \                                        });\r
-
-                \                                    });\r
-
-                \                                });\r
-
-                \                            });\r
-
-                \                        });\r
-
-                \                    });\r
-
-                \                });\r
-
-                \            } else {\r
-
-                \                console.error(\"Upload failed to return a
-                document number.\");\r
-
-                \            }\r
-
-                \        });\r
-
-                \    }\r
-
-                });"
+                Create Group -> Group Approval = BANK REJECTED", async function
+                () {
+
+                    const generateRandomString = (length) => {
+                        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
+
+                    const generateRandomNumber = (length) => {
+                        const chars = '0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
+
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
+
+                    try {
+
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success === true) {
+                            const token = tokenResponse.result;
+                            insomnia.environment.set("blockchain_token", token);
+
+                            const batchId = generateRandomString(10);
+                            const generatedDocNum = generateRandomString(12);
+
+                            const date = new Date();
+                            const randomDays = Math.floor(Math.random() * 30) + 1;
+                            date.setDate(date.getDate() + randomDays);
+
+                            const futureDueDate = date.toISOString().split('T')[0];
+                            const today = new Date().toISOString().split('T')[0];
+
+                            const uploadRequest = {
+                                url: `${insomnia.environment.get('host')}/invoice/upload`,
+                                method: "POST",
+                                header: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": `Bearer ${token}`
+                                },
+                                body: {
+                                    mode: 'raw',
+                                    raw: JSON.stringify({
+                                        "role": "BUYER",
+                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "uploadCode": "internal",
+                                        "data": {
+                                            "batchId": batchId,
+                                            "fileName": "uploadfile.csv",
+                                            "orgCode": "EBC",
+                                            "role": "BUYER",
+                                            "documents": [{
+                                                "documentNumber": generatedDocNum,
+                                                "documentType": "IN",
+                                                "buyerCode": "EBC",
+                                                "buyerName": "Example Buyer Company",
+                                                "sellerCode": "ESC",
+                                                "sellerName": "Example Seller Company",
+                                                "transactionDate": today,
+                                                "deliveryDate": today,
+                                                "dueDate": futureDueDate,
+                                                "currency": "PHP",
+                                                "outstandingAmount": 1000,
+                                                "totalAmount": "1000.00",
+                                                "prioritySeller": true
+                                            }]
+                                        }
+                                    })
+                                }
+                            };
+
+                            const res = await send(uploadRequest);
+
+                            insomnia.test("PD Flow: Invoice Upload (Buyer Maker) -> BUYER_MAKER_REQUEST_DOCUMENT_APPROVAL", () => {
+                                insomnia.expect(res.code).to.be.oneOf([200, 201]);
+                            });
+
+                            const uploadData = res.json();
+
+                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
+
+                                const docNumberFromResponse = uploadData.result[0].documentNumber;
+
+                                const pdApproveOptionalRequest = {
+                                    url: `${insomnia.environment.get('host')}/invoice/pd/approval`,
+                                    method: "PUT",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    { "documentNumber": docNumberFromResponse }
+                                                ],
+                                                "status": "BUYER_CHECKER_APPROVED_DOCUMENT",
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "rfFlag": "OPTIONAL",
+                                                "buyerAmountLimit": "1000",
+                                                "discountingType": "TYPE",
+                                                "lendingTag": "TAG"
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdApproveOptionalResponse = await send(pdApproveOptionalRequest);
+
+                                insomnia.test("PD Flow: Approve Optional (Buyer Checker) -> BUYER_CHECKER_APPROVED_DOCUMENT", () => {
+                                    insomnia.expect(pdApproveOptionalResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const pdAcceptanceRequest = {
+                                    url: `${insomnia.environment.get('host')}/invoice/pd/acceptance`,
+                                    method: "PUT",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    { "documentNumber": docNumberFromResponse }
+                                                ],
+                                                "status": "SELLER_MAKER_ACCEPTED_RF",
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdAcceptanceResponse = await send(pdAcceptanceRequest);
+
+                                insomnia.test("PD Flow: Acceptance (Seller Maker) -> SELLER_MAKER_ACCEPTED_RF", () => {
+                                    insomnia.expect(pdAcceptanceResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const pdDisclosureRequest = {
+                                    url: `${insomnia.environment.get('host')}/invoice/pd/disclosure`,
+                                    method: "POST",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    { "documentNumber": docNumberFromResponse }
+                                                ],
+                                                "disclosureNumber": `DS${generateRandomNumber(10)}`,
+                                                "status": "SELLER_APPROVER_ACCEPTED_RF",
+                                                "buyerAmountLimit": 1000,
+                                                "atcCode": "CODE1",
+                                                "atcPercentage": 10,
+                                                "factorRate": 5,
+                                                "bankCharge": 2,
+                                                "processingFee": "5",
+                                                "processingFeeType": "PERCENTAGE",
+                                                "chargeTo": "BUYER",
+                                                "vatRate": 5,
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdDisclosureResponse = await send(pdDisclosureRequest);
+
+                                insomnia.test("PD Flow: PD Disclosure -> SELLER_APPROVER_ACCEPTED_RF", () => {
+                                    insomnia.expect(pdDisclosureResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const pdOptionalDisbursementRequest = {
+                                    url: `${insomnia.environment.get('host')}/invoice/pd/optional-disbursement`,
+                                    method: "PUT",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    { "documentNumber": docNumberFromResponse }
+                                                ],
+                                                "status": "INVOICE_FULLY_PAID_BY_BANK_TO_SELLER",
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "transactionId": `UBL${generateRandomNumber(8)}`,
+                                                "hasCwt": false
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdAOptionalDisbursementResponse = await send(pdOptionalDisbursementRequest);
+
+                                insomnia.test("PD Flow: Optional Disbursement (Discounted) -> INVOICE_FULLY_PAID_BY_BANK_TO_SELLER", () => {
+                                    insomnia.expect(pdAOptionalDisbursementResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const groupId = generateRandomString(8);
+
+                                const pdCreateGroupRequest = {
+                                    url: `${insomnia.environment.get('host')}/group/pd/create`,
+                                    method: "POST",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "documents": [
+                                                    {
+                                                        "number": docNumberFromResponse,
+                                                        "requestedLoanAmount": "1000"
+                                                    }
+                                                ],
+                                                "groupId": groupId,
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "modeOfPayment": "AC_PAYMENT"
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdCreateGroupResponse = await send(pdCreateGroupRequest);
+
+                                insomnia.test("PD Flow: Create Group (For Approval)", () => {
+                                    insomnia.expect(pdCreateGroupResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                                const pdGroupApprovalRequest = {
+                                    url: `${insomnia.environment.get('host')}/group/pd/approval`,
+                                    method: "PUT",
+                                    header: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify({
+                                            "data": {
+                                                "groupId": groupId,
+                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "status": "BANK_REJECTED_PAYMENT_BU2BA",
+                                                "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                                "remarks": "Bank Rejected PD Group Approval"
+                                            }
+                                        })
+                                    }
+                                };
+
+                                const pdGroupApprovalResponse = await send(pdGroupApprovalRequest);
+
+                                insomnia.test("PD Flow Complete: Group Approval -> BANK REJECTED", () => {
+                                    insomnia.expect(pdGroupApprovalResponse.code).to.be.oneOf([200, 201]);
+                                });
+
+                            } else {
+                                console.error("Upload failed to return a document number.");
+                            }
+                        }
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
+                    }
+
+                });
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -5191,7 +3669,7 @@ collection:
             meta:
               id: req_35fadb8b09f24f96886d35f094f29973
               created: 1773627777373
-              modified: 1773630217793
+              modified: 1774845257455
               isPrivate: false
               description: ""
               sortKey: -1773627756559
@@ -5209,693 +3687,264 @@ collection:
               - name: Content-Type
                 value: application/json
             scripts:
-              afterResponse: "insomnia.test(\"Sequential API Chain: Token -> Upload -> Approve
+              afterResponse: >-
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
                 Optional -> Acceptance -> Disclosure -> Optional Disbursement ->
-                Create Group -> Group Approval = BANK ERROR\", function () {\r
-
-                \    const generateRandomString = (length) => {\r
-
-                \        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';\r
-
-                \        let result = '';\r
-
-                \        for (let i = 0; i < length; i++) {\r
-
-                \            result += chars.charAt(Math.floor(Math.random() *
-                chars.length));\r
-
-                \        }\r
-
-                \        return result;\r
-
-                \    };\r
-
-                \r
-
-                \    const generateRandomNumber = (length) => {\r
-
-                \        const chars = '0123456789';\r
-
-                \        let result = '';\r
-
-                \        for (let i = 0; i < length; i++) {\r
-
-                \            result += chars.charAt(Math.floor(Math.random() *
-                chars.length));\r
-
-                \        }\r
-
-                \        return result;\r
-
-                \    };\r
-
-                \r
-
-                \    const tokenResponse = insomnia.response.json();\r
-
-                \r
-
-                \    if (tokenResponse.success === true) {\r
-
-                \        const token = tokenResponse.result;\r
-
-                \        insomnia.environment.set(\"blockchain_token\",
-                token);\r
-
-                \r
-
-                \        const batchId = generateRandomString(10);\r
-
-                \        const generatedDocNum = generateRandomString(12);\r
-
-                \r
-
-                \        const date = new Date();\r
-
-                \        const randomDays = Math.floor(Math.random() * 30) +
-                1;\r
-
-                \        date.setDate(date.getDate() + randomDays);\r
-
-                \r
-
-                \        const futureDueDate =
-                date.toISOString().split('T')[0];\r
-
-                \        const today = new Date().toISOString().split('T')[0];\r
-
-                \r
-
-                \        const uploadRequest = {\r
-
-                \            url:
-                `${insomnia.environment.get('host')}/invoice/upload`,\r
-
-                \            method: \"POST\",\r
-
-                \            header: {\r
-
-                \                \"Content-Type\": \"application/json\",\r
-
-                \                \"Authorization\": `Bearer ${token}`\r
-
-                \            },\r
-
-                \            body: {\r
-
-                \                mode: 'raw',\r
-
-                \                raw: JSON.stringify({\r
-
-                \                    \"role\": \"BUYER\",\r
-
-                \                    \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                    \"uploadCode\": \"internal\",\r
-
-                \                    \"data\": {\r
-
-                \                        \"batchId\": batchId,\r
-
-                \                        \"fileName\": \"uploadfile.csv\",\r
-
-                \                        \"orgCode\": \"EBC\",\r
-
-                \                        \"role\": \"BUYER\",\r
-
-                \                        \"documents\": [{\r
-
-                \                            \"documentNumber\":
-                generatedDocNum,\r
-
-                \                            \"documentType\": \"IN\",\r
-
-                \                            \"buyerCode\": \"EBC\",\r
-
-                \                            \"buyerName\": \"Example Buyer
-                Company\",\r
-
-                \                            \"sellerCode\": \"ESC\",\r
-
-                \                            \"sellerName\": \"Example Seller
-                Company\",\r
-
-                \                            \"transactionDate\": today,\r
-
-                \                            \"deliveryDate\": today,\r
-
-                \                            \"dueDate\": futureDueDate,\r
-
-                \                            \"currency\": \"PHP\",\r
-
-                \                            \"outstandingAmount\": 1000,\r
-
-                \                            \"totalAmount\": \"1000.00\",\r
-
-                \                            \"prioritySeller\": true\r
-
-                \                        }]\r
-
-                \                    }\r
-
-                \                })\r
-
-                \            }\r
-
-                \        };\r
-
-                \r
-
-                \        insomnia.sendRequest(uploadRequest, (err, res) => {\r
-
-                \            insomnia.test(\"PD Flow: Invoice Upload (Buyer
-                Maker) -> BUYER_MAKER_REQUEST_DOCUMENT_APPROVAL\", () => {\r
-
-                \                insomnia.expect(res.code).to.be.oneOf([200,
-                201]);\r
-
-                \            });\r
-
-                \            if (err) return console.error(\"Upload API
-                Error:\", err);\r
-
-                \r
-
-                \            const uploadData = res.json();\r
-
-                \r
-
-                \            if (uploadData.success && uploadData.result &&
-                uploadData.result.length > 0) {\r
-
-                \                const docNumberFromResponse =
-                uploadData.result[0].documentNumber;\r
-
-                \                const pdApproveOptionalPayload = {\r
-
-                \                    \"data\": {\r
-
-                \                        \"documents\": [\r
-
-                \                            { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                        ],\r
-
-                \                        \"status\":
-                \"BUYER_CHECKER_APPROVED_DOCUMENT\",\r
-
-                \                        \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                        \"rfFlag\": \"OPTIONAL\",\r
-
-                \                        \"buyerAmountLimit\": \"1000\",\r
-
-                \                        \"discountingType\": \"TYPE\",\r
-
-                \                        \"lendingTag\": \"TAG\"\r
-
-                \                    }\r
-
-                \                }\r
-
-                \r
-
-                \                const pdApproveOptionalRequest = {\r
-
-                \                    url:
-                `${insomnia.environment.get('host')}/invoice/pd/approval`,\r
-
-                \                    method: \"PUT\",\r
-
-                \                    header: {\r
-
-                \                        \"Content-Type\":
-                \"application/json\",\r
-
-                \                        \"Authorization\": `Bearer ${token}`\r
-
-                \                    },\r
-
-                \                    body: {\r
-
-                \                        mode: 'raw',\r
-
-                \                        raw:
-                JSON.stringify(pdApproveOptionalPayload)\r
-
-                \                    }\r
-
-                \                };\r
-
-                \r
-
-                \                insomnia.sendRequest(pdApproveOptionalRequest,
-                (err, pdApproveOptionalResponse) => {\r
-
-                \                    insomnia.test(\"PD Flow: Approve Optional
-                (Buyer Checker) -> BUYER_CHECKER_APPROVED_DOCUMENT\", () => {\r
-
-                \                        insomnia.expect(pdApproveOptionalRespo\
-                nse.code).to.be.oneOf([200, 201]);\r
-
-                \                    });\r
-
-                \r
-
-                \                    if (err) return console.error(\"PD Approve
-                Optional API Error:\", err);\r
-
-                \r
-
-                \                    const pdAcceptancePayload = {\r
-
-                \                        \"data\": {\r
-
-                \                            \"documents\": [\r
-
-                \                                { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                            ],\r
-
-                \                            \"status\":
-                \"SELLER_MAKER_ACCEPTED_RF\",\r
-
-                \                            \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                        }\r
-
-                \                    }\r
-
-                \r
-
-                \                    const pdAcceptanceRequest = {\r
-
-                \                        url:
-                `${insomnia.environment.get('host')}/invoice/pd/acceptance`,\r
-
-                \                        method: \"PUT\",\r
-
-                \                        header: {\r
-
-                \                            \"Content-Type\":
-                \"application/json\",\r
-
-                \                            \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                        },\r
-
-                \                        body: {\r
-
-                \                            mode: 'raw',\r
-
-                \                            raw:
-                JSON.stringify(pdAcceptancePayload)\r
-
-                \                        }\r
-
-                \                    };\r
-
-                \r
-
-                \                    insomnia.sendRequest(pdAcceptanceRequest,
-                (err, pdAcceptanceResponse) => {\r
-
-                \                        insomnia.test(\"PD Flow: Acceptance
-                (Seller Maker) -> SELLER_MAKER_ACCEPTED_RF\", () => {\r
-
-                \                            insomnia.expect(pdAcceptanceRespon\
-                se.code).to.be.oneOf([200, 201]);\r
-
-                \                        });\r
-
-                \r
-
-                \                        if (err) return console.error(\"PD
-                Acceptance API Error:\", err);\r
-
-                \r
-
-                \                        const pdDisclosurePayload = {\r
-
-                \                            \"data\": {\r
-
-                \                                \"documents\": [\r
-
-                \                                    { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                                ],\r
-
-                \                                \"disclosureNumber\":
-                `DS${generateRandomNumber(10)}`,\r
-
-                \                                \"status\":
-                \"SELLER_APPROVER_ACCEPTED_RF\",\r
-
-                \                                \"buyerAmountLimit\": 1000,\r
-
-                \                                \"atcCode\": \"CODE1\",\r
-
-                \                                \"atcPercentage\": 10,\r
-
-                \                                \"factorRate\": 5,\r
-
-                \                                \"bankCharge\": 2,\r
-
-                \                                \"processingFee\": \"5\",\r
-
-                \                                \"processingFeeType\":
-                \"PERCENTAGE\",\r
-
-                \                                \"chargeTo\": \"BUYER\",\r
-
-                \                                \"vatRate\": 5,\r
-
-                \                                \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                            }\r
-
-                \                        }\r
-
-                \r
-
-                \                        const pdDisclosureRequest = {\r
-
-                \                            url:
-                `${insomnia.environment.get('host')}/invoice/pd/disclosure`,\r
-
-                \                            method: \"POST\",\r
-
-                \                            header: {\r
-
-                \                                \"Content-Type\":
-                \"application/json\",\r
-
-                \                                \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                            },\r
-
-                \                            body: {\r
-
-                \                                mode: 'raw',\r
-
-                \                                raw:
-                JSON.stringify(pdDisclosurePayload)\r
-
-                \                            }\r
-
-                \                        };\r
-
-                \r
-
-                \                        insomnia.sendRequest(pdDisclosureReque\
-                st, (err, pdDisclosureResponse) => {\r
-
-                \                            insomnia.test(\"PD Flow: PD
-                Disclosure -> SELLER_APPROVER_ACCEPTED_RF\", () => {\r
-
-                \                                insomnia.expect(pdDisclosureRe\
-                sponse.code).to.be.oneOf([200, 201]);\r
-
-                \                            });\r
-
-                \r
-
-                \                            if (err) return console.error(\"PD
-                Disclosure API Error:\", err);\r
-
-                \r
-
-                \                            const pdOptionalDisbursementPayload
-                = {\r
-
-                \                                \"data\": {\r
-
-                \                                    \"documents\": [\r
-
-                \                                        { \"documentNumber\":
-                docNumberFromResponse }\r
-
-                \                                    ],\r
-
-                \                                    \"status\":
-                \"INVOICE_FULLY_PAID_BY_BANK_TO_SELLER\",\r
-
-                \                                    \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                    \"referenceId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                    \"transactionId\":
-                `UBL${generateRandomNumber(8)}`,\r
-
-                \                                    \"hasCwt\": false\r
-
-                \                                }\r
-
-                \                            }\r
-
-                \r
-
-                \                            const pdOptionalDisbursementRequest
-                = {\r
-
-                \                                url:
-                `${insomnia.environment.get('host')}/invoice/pd/optional-disbur\
-                sement`,\r
-
-                \                                method: \"PUT\",\r
-
-                \                                header: {\r
-
-                \                                    \"Content-Type\":
-                \"application/json\",\r
-
-                \                                    \"Authorization\": `Bearer
-                ${token}`\r
-
-                \                                },\r
-
-                \                                body: {\r
-
-                \                                    mode: 'raw',\r
-
-                \                                    raw:
-                JSON.stringify(pdOptionalDisbursementPayload)\r
-
-                \                                }\r
-
-                \                            };\r
-
-                \r
-
-                \                            insomnia.sendRequest(pdOptionalDis\
-                bursementRequest, (err, pdAOptionalDisbursementResponse) => {\r
-
-                \                                insomnia.test(\"PD Flow:
-                Optional Disbursement (Discounted) ->
-                INVOICE_FULLY_PAID_BY_BANK_TO_SELLER\", () => {\r
-
-                \                                    insomnia.expect(pdAOptiona\
-                lDisbursementResponse.code).to.be.oneOf([200, 201]);\r
-
-                \                                });\r
-
-                \r
-
-                \                                if (err) return
-                console.error(\"PD Optional Disbursement API Error:\", err);\r
-
-                \r
-
-                \                                const groupId =
-                generateRandomString(8);\r
-
-                \r
-
-                \                                const pdCreateGroupPayload =
-                {\r
-
-                \                                    \"data\": {\r
-
-                \                                        \"documents\": [\r
-
-                \                                            {\r
-
-                \                                                \"number\":
-                docNumberFromResponse,\r
-
-                \                                                \"requestedLoa\
-                nAmount\": \"1000\"\r
-
-                \                                            }\r
-
-                \                                        ],\r
-
-                \                                        \"groupId\": groupId,\r
-
-                \                                        \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                        \"modeOfPayment\":
-                \"AC_PAYMENT\"\r
-
-                \                                    }\r
-
-                \                                }\r
-
-                \r
-
-                \                                const pdCreateGroupRequest =
-                {\r
-
-                \                                    url:
-                `${insomnia.environment.get('host')}/group/pd/create`,\r
-
-                \                                    method: \"POST\",\r
-
-                \                                    header: {\r
-
-                \                                        \"Content-Type\":
-                \"application/json\",\r
-
-                \                                        \"Authorization\":
-                `Bearer ${token}`\r
-
-                \                                    },\r
-
-                \                                    body: {\r
-
-                \                                        mode: 'raw',\r
-
-                \                                        raw:
-                JSON.stringify(pdCreateGroupPayload)\r
-
-                \                                    }\r
-
-                \                                };\r
-
-                \r
-
-                \                                insomnia.sendRequest(pdCreateG\
-                roupRequest, (err, pdCreateGroupResponse) => {\r
-
-                \                                    insomnia.test(\"PD Flow:
-                Create Group (For Approval)\", () => {\r
-
-                \                                        insomnia.expect(pdCrea\
-                teGroupResponse.code).to.be.oneOf([200, 201]);\r
-
-                \                                    });\r
-
-                \r
-
-                \                                    if (err) return
-                console.error(\"PD Create Group API Error:\", err);\r
-
-                \r
-
-                \                                    const
-                pdGroupApprovalPayload = {\r
-
-                \                                        \"data\": {\r
-
-                \                                            \"groupId\":
-                groupId,\r
-
-                \                                            \"userId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                            \"status\":
-                \"BANK_ERROR_BU2BA\",\r
-
-                \                                            \"referenceId\":
-                insomnia.variables.replaceIn('{{$randomUUID}}'),\r
-
-                \                                            \"remarks\": \"Bank
-                Error PD Group Approval\"\r
-
-                \                                        }\r
-
-                \                                    }\r
-
-                \r
-
-                \                                    const
-                pdGroupApprovalRequest = {\r
-
-                \                                        url:
-                `${insomnia.environment.get('host')}/group/pd/approval`,\r
-
-                \                                        method: \"PUT\",\r
-
-                \                                        header: {\r
-
-                \                                            \"Content-Type\":
-                \"application/json\",\r
-
-                \                                            \"Authorization\":
-                `Bearer ${token}`\r
-
-                \                                        },\r
-
-                \                                        body: {\r
-
-                \                                            mode: 'raw',\r
-
-                \                                            raw:
-                JSON.stringify(pdGroupApprovalPayload)\r
-
-                \                                        }\r
-
-                \                                    };\r
-
-                \r
-
-                \                                    insomnia.sendRequest(pdGro\
-                upApprovalRequest, (err, pdGroupApprovalResponse) => {\r
-
-                \                                        insomnia.test(\"PD Flow
-                Complete: Group Approval -> BANK ERROR\", () => {\r
-
-                \                                            insomnia.expect(pd\
-                GroupApprovalResponse.code).to.be.oneOf([200, 201]);\r
-
-                \                                        });\r
-
-                \                                    });\r
-
-                \                                });\r
-
-                \                            });\r
-
-                \                        });\r
-
-                \                    });\r
-
-                \                });\r
-
-                \            } else {\r
-
-                \                console.error(\"Upload failed to return a
-                document number.\");\r
-
-                \            }\r
-
-                \        });\r
-
-                \    }\r
-
-                });"
+                Create Group -> Group Approval = BANK ERROR", async function ()
+                {
+
+                    const generateRandomString = (length) => {
+                        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
+
+                    const generateRandomNumber = (length) => {
+                        const chars = '0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
+
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
+
+                    try {
+                        const tokenResponse = insomnia.response.json();
+                        if (!tokenResponse.success) throw new Error("Token request failed");
+
+                        const token = tokenResponse.result;
+                        insomnia.environment.set("blockchain_token", token);
+
+                        const batchId = generateRandomString(10);
+                        const generatedDocNum = generateRandomString(12);
+
+                        const date = new Date();
+                        const randomDays = Math.floor(Math.random() * 30) + 1;
+                        date.setDate(date.getDate() + randomDays);
+
+                        const futureDueDate = date.toISOString().split('T')[0];
+                        const today = new Date().toISOString().split('T')[0];
+
+                        // 🔹 Upload
+                        const uploadRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/upload`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    role: "BUYER",
+                                    userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                    uploadCode: "internal",
+                                    data: {
+                                        batchId,
+                                        fileName: "uploadfile.csv",
+                                        orgCode: "EBC",
+                                        role: "BUYER",
+                                        documents: [{
+                                            documentNumber: generatedDocNum,
+                                            documentType: "IN",
+                                            buyerCode: "EBC",
+                                            buyerName: "Example Buyer Company",
+                                            sellerCode: "ESC",
+                                            sellerName: "Example Seller Company",
+                                            transactionDate: today,
+                                            deliveryDate: today,
+                                            dueDate: futureDueDate,
+                                            currency: "PHP",
+                                            outstandingAmount: 1000,
+                                            totalAmount: "1000.00",
+                                            prioritySeller: true
+                                        }]
+                                    }
+                                })
+                            }
+                        };
+
+                        const uploadRes = await send(uploadRequest);
+                        insomnia.test("PD Flow: Invoice Upload (Buyer Maker) -> BUYER_MAKER_REQUEST_DOCUMENT_APPROVAL", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        const uploadData = uploadRes.json();
+                        if (!uploadData.success || !uploadData.result?.length) throw new Error("Upload failed to return a document number");
+
+                        const docNumber = uploadData.result[0].documentNumber;
+
+                        // 🔹 Approve Optional
+                        const pdApproveOptionalPayload = {
+                            data: {
+                                documents: [{ documentNumber: docNumber }],
+                                status: "BUYER_CHECKER_APPROVED_DOCUMENT",
+                                userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                rfFlag: "OPTIONAL",
+                                buyerAmountLimit: "1000",
+                                discountingType: "TYPE",
+                                lendingTag: "TAG"
+                            }
+                        };
+                        const pdApproveOptionalRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/pd/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: { mode: 'raw', raw: JSON.stringify(pdApproveOptionalPayload) }
+                        };
+                        const pdApproveOptionalRes = await send(pdApproveOptionalRequest);
+                        insomnia.test("PD Flow: Approve Optional (Buyer Checker) -> BUYER_CHECKER_APPROVED_DOCUMENT", () => {
+                            insomnia.expect(pdApproveOptionalRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 Acceptance
+                        const pdAcceptancePayload = {
+                            data: {
+                                documents: [{ documentNumber: docNumber }],
+                                status: "SELLER_MAKER_ACCEPTED_RF",
+                                userId: insomnia.variables.replaceIn('{{$randomUUID}}')
+                            }
+                        };
+                        const pdAcceptanceRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/pd/acceptance`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: { mode: 'raw', raw: JSON.stringify(pdAcceptancePayload) }
+                        };
+                        const pdAcceptanceRes = await send(pdAcceptanceRequest);
+                        insomnia.test("PD Flow: Acceptance (Seller Maker) -> SELLER_MAKER_ACCEPTED_RF", () => {
+                            insomnia.expect(pdAcceptanceRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 Disclosure
+                        const pdDisclosurePayload = {
+                            data: {
+                                documents: [{ documentNumber: docNumber }],
+                                disclosureNumber: `DS${generateRandomNumber(10)}`,
+                                status: "SELLER_APPROVER_ACCEPTED_RF",
+                                buyerAmountLimit: 1000,
+                                atcCode: "CODE1",
+                                atcPercentage: 10,
+                                factorRate: 5,
+                                bankCharge: 2,
+                                processingFee: "5",
+                                processingFeeType: "PERCENTAGE",
+                                chargeTo: "BUYER",
+                                vatRate: 5,
+                                userId: insomnia.variables.replaceIn('{{$randomUUID}}')
+                            }
+                        };
+                        const pdDisclosureRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/pd/disclosure`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: { mode: 'raw', raw: JSON.stringify(pdDisclosurePayload) }
+                        };
+                        const pdDisclosureRes = await send(pdDisclosureRequest);
+                        insomnia.test("PD Flow: PD Disclosure -> SELLER_APPROVER_ACCEPTED_RF", () => {
+                            insomnia.expect(pdDisclosureRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 Optional Disbursement
+                        const pdOptionalDisbursementPayload = {
+                            data: {
+                                documents: [{ documentNumber: docNumber }],
+                                status: "INVOICE_FULLY_PAID_BY_BANK_TO_SELLER",
+                                userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                referenceId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                transactionId: `UBL${generateRandomNumber(8)}`,
+                                hasCwt: false
+                            }
+                        };
+                        const pdOptionalDisbursementRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/pd/optional-disbursement`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: { mode: 'raw', raw: JSON.stringify(pdOptionalDisbursementPayload) }
+                        };
+                        const pdOptionalDisbursementRes = await send(pdOptionalDisbursementRequest);
+                        insomnia.test("PD Flow: Optional Disbursement (Discounted) -> INVOICE_FULLY_PAID_BY_BANK_TO_SELLER", () => {
+                            insomnia.expect(pdOptionalDisbursementRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 Create Group
+                        const groupId = generateRandomString(8);
+                        const pdCreateGroupPayload = {
+                            data: {
+                                documents: [{ number: docNumber, requestedLoanAmount: "1000" }],
+                                groupId,
+                                userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                modeOfPayment: "AC_PAYMENT"
+                            }
+                        };
+                        const pdCreateGroupRequest = {
+                            url: `${insomnia.environment.get('host')}/group/pd/create`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: { mode: 'raw', raw: JSON.stringify(pdCreateGroupPayload) }
+                        };
+                        const pdCreateGroupRes = await send(pdCreateGroupRequest);
+                        insomnia.test("PD Flow: Create Group (For Approval)", () => {
+                            insomnia.expect(pdCreateGroupRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 Group Approval
+                        const pdGroupApprovalPayload = {
+                            data: {
+                                groupId,
+                                userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                status: "BANK_ERROR_BU2BA",
+                                referenceId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                remarks: "Bank Error PD Group Approval"
+                            }
+                        };
+                        const pdGroupApprovalRequest = {
+                            url: `${insomnia.environment.get('host')}/group/pd/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: { mode: 'raw', raw: JSON.stringify(pdGroupApprovalPayload) }
+                        };
+                        const pdGroupApprovalRes = await send(pdGroupApprovalRequest);
+                        insomnia.test("PD Flow Complete: Group Approval -> BANK ERROR", () => {
+                            insomnia.expect(pdGroupApprovalRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
+                    }
+
+                });
             settings:
               renderRequestBody: true
               encodeUrl: true
