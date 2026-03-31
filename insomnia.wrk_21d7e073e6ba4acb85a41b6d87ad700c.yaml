@@ -11,7 +11,7 @@ collection:
     meta:
       id: fld_3d34ad8c294b45c683123ba2821fc60a
       created: 1773627777341
-      modified: 1773904290467
+      modified: 1774924474081
       sortKey: -1773627756579
       description: ""
     children:
@@ -19,7 +19,7 @@ collection:
         meta:
           id: fld_6aa0a2dc7b2848d583dc778e858dea83
           created: 1773627777348
-          modified: 1773904290467
+          modified: 1774924474081
           sortKey: -1773627756574
           description: ""
         children:
@@ -2445,7 +2445,7 @@ collection:
             meta:
               id: req_c21f4346a8484c90bc5f7c726a4e0919
               created: 1773627777365
-              modified: 1774837987652
+              modified: 1774923812163
               isPrivate: false
               description: ""
               sortKey: -1773627756563
@@ -2467,46 +2467,56 @@ collection:
                 insomnia.test("Sequential API Chain: Token -> Upload -> Approve
                 Optional -> Acceptance -> Disclosure -> Optional Disbursement ->
                 Direct CASA = BANK REJECTED", async function () {
+
                     const generateRandomString = (length) => {
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                        return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
                     };
 
                     const generateRandomNumber = (length) => {
                         const chars = '0123456789';
-                        return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
                     };
 
-                    const send = (req) =>
-                        new Promise((resolve, reject) => {
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
                             insomnia.sendRequest(req, (err, res) => {
-                                if (err) return reject(err);
-                                resolve(res);
+                                if (err) reject(err);
+                                else resolve(res);
                             });
                         });
+                    };
 
                     try {
-                        // ===== TOKEN =====
+
                         const tokenResponse = insomnia.response.json();
 
-                        if (!tokenResponse?.success) {
-                            throw new Error("Token retrieval failed");
+                        if (tokenResponse.success !== true) {
+                            throw new Error("Token request failed");
                         }
 
                         const token = tokenResponse.result;
                         insomnia.environment.set("blockchain_token", token);
 
-                        // ===== COMMON DATA =====
                         const batchId = generateRandomString(10);
                         const generatedDocNum = generateRandomString(12);
 
                         const date = new Date();
-                        date.setDate(date.getDate() + Math.floor(Math.random() * 30) + 1);
+                        const randomDays = Math.floor(Math.random() * 30) + 1;
+                        date.setDate(date.getDate() + randomDays);
 
                         const futureDueDate = date.toISOString().split('T')[0];
                         const today = new Date().toISOString().split('T')[0];
 
-                        // ===== UPLOAD =====
+                        // 🔹 Upload
                         const uploadRes = await send({
                             url: `${insomnia.environment.get('host')}/invoice/upload`,
                             method: "POST",
@@ -2545,14 +2555,18 @@ collection:
                             }
                         });
 
-                        insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
+                        insomnia.test("PD Flow: Invoice Upload (Buyer Maker)", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
+                        });
 
                         const uploadData = uploadRes.json();
-                        const docNumber = uploadData?.result?.[0]?.documentNumber;
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed");
+                        }
 
-                        if (!docNumber) throw new Error("No document number returned");
+                        const docNumber = uploadData.result[0].documentNumber;
 
-                        // ===== APPROVE OPTIONAL =====
+                        // 🔹 Approve Optional
                         const approveRes = await send({
                             url: `${insomnia.environment.get('host')}/invoice/pd/approval`,
                             method: "PUT",
@@ -2576,9 +2590,11 @@ collection:
                             }
                         });
 
-                        insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
+                        insomnia.test("PD Flow: Approve Optional", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
+                        });
 
-                        // ===== ACCEPTANCE =====
+                        // 🔹 Acceptance
                         const acceptanceRes = await send({
                             url: `${insomnia.environment.get('host')}/invoice/pd/acceptance`,
                             method: "PUT",
@@ -2592,15 +2608,17 @@ collection:
                                     data: {
                                         documents: [{ documentNumber: docNumber }],
                                         status: "SELLER_MAKER_ACCEPTED_RF",
-                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}')
                                     }
                                 })
                             }
                         });
 
-                        insomnia.expect(acceptanceRes.code).to.be.oneOf([200, 201]);
+                        insomnia.test("PD Flow: Acceptance", () => {
+                            insomnia.expect(acceptanceRes.code).to.be.oneOf([200, 201]);
+                        });
 
-                        // ===== DISCLOSURE =====
+                        // 🔹 Disclosure
                         const disclosureRes = await send({
                             url: `${insomnia.environment.get('host')}/invoice/pd/disclosure`,
                             method: "POST",
@@ -2624,16 +2642,18 @@ collection:
                                         processingFeeType: "PERCENTAGE",
                                         chargeTo: "BUYER",
                                         vatRate: 5,
-                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}')
                                     }
                                 })
                             }
                         });
 
-                        insomnia.expect(disclosureRes.code).to.be.oneOf([200, 201]);
+                        insomnia.test("PD Flow: Disclosure", () => {
+                            insomnia.expect(disclosureRes.code).to.be.oneOf([200, 201]);
+                        });
 
-                        // ===== OPTIONAL DISBURSEMENT =====
-                        const disbursementRes = await send({
+                        // 🔹 Optional Disbursement
+                        const disburseRes = await send({
                             url: `${insomnia.environment.get('host')}/invoice/pd/optional-disbursement`,
                             method: "PUT",
                             header: {
@@ -2655,10 +2675,12 @@ collection:
                             }
                         });
 
-                        insomnia.expect(disbursementRes.code).to.be.oneOf([200, 201]);
+                        insomnia.test("PD Flow: Optional Disbursement", () => {
+                            insomnia.expect(disburseRes.code).to.be.oneOf([200, 201]);
+                        });
 
-                        // ===== DIRECT CASA (BANK REJECTED) =====
-                        const directCasaRes = await send({
+                        // 🔹 Direct CASA
+                        const casaRes = await send({
                             url: `${insomnia.environment.get('host')}/group/pd/direct`,
                             method: "POST",
                             header: {
@@ -2669,11 +2691,11 @@ collection:
                                 mode: 'raw',
                                 raw: JSON.stringify({
                                     data: {
+                                        groupId: generateRandomString(8),
                                         documents: [{
                                             number: docNumber,
                                             requestedLoanAmount: "1000"
                                         }],
-                                        groupId: generateRandomString(8),
                                         userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
                                         status: "BANK_REJECTED_PAYMENT_BU2BA",
                                         referenceId: insomnia.variables.replaceIn('{{$randomUUID}}'),
@@ -2685,12 +2707,15 @@ collection:
                             }
                         });
 
-                        insomnia.expect(directCasaRes.code).to.be.oneOf([200, 201]);
+                        insomnia.test("PD Flow Complete: Direct CASA -> BANK REJECTED", () => {
+                            insomnia.expect(casaRes.code).to.be.oneOf([200, 201]);
+                        });
 
-                    } catch (error) {
-                        console.error("Flow Error:", error.message);
-                        throw error;
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
                     }
+
                 });
             settings:
               renderRequestBody: true
@@ -6376,16 +6401,16 @@ cookieJar:
   meta:
     id: jar_3a7148c8134313d06313f0c4774dd5f8f3dad896
     created: 1773630217820
-    modified: 1773904290462
+    modified: 1774924474076
 environments:
   name: Base Environment
   meta:
     id: env_3a7148c8134313d06313f0c4774dd5f8f3dad896
     created: 1773627777374
-    modified: 1773904290465
+    modified: 1774924474079
     isPrivate: false
   data:
-    blockchain_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJMT0NBTCIsInJvbGUiOiJjbGllbnQiLCJpYXQiOjE3NzM5MDQyNDksImV4cCI6MTc3MzkzMzA0OX0.Dxpl26XgEQOU1aECc0REtXhmceuOaUyr3FtqsBchgFE
+    blockchain_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJMT0NBTCIsInJvbGUiOiJjbGllbnQiLCJpYXQiOjE3NzQ5MjQ0MjksImV4cCI6MTc3NDk1MzIyOX0.EdDVCbcMFM8x5hUMHRFxLJ6X2tp-CZyiu3ErnmSLsDE
     fihost: http://localhost:3003/v2
     fitoken: ""
     host: http://localhost:3002/v2
