@@ -11,7 +11,7 @@ collection:
     meta:
       id: fld_3d34ad8c294b45c683123ba2821fc60a
       created: 1773627777341
-      modified: 1774924474081
+      modified: 1774937200887
       sortKey: -1773627756579
       description: ""
     children:
@@ -3982,7 +3982,7 @@ collection:
         meta:
           id: fld_bb31ed2541d2415c8c3a1d258b43f708
           created: 1773630331151
-          modified: 1773630349039
+          modified: 1774937200888
           sortKey: -1773627756678
           description: ""
         children:
@@ -4100,7 +4100,7 @@ collection:
             meta:
               id: req_dd50d8d44d574c80be57d56e521f4dd4
               created: 1773630331152
-              modified: 1773630331152
+              modified: 1774925104486
               isPrivate: false
               description: ""
               sortKey: -1773630328869
@@ -4123,7 +4123,8 @@ collection:
             scripts:
               afterResponse: >-
                 insomnia.test("Sequential API Chain: Token -> Upload ->
-                Approve", function () {
+                Approve", async function () {
+
                     const generateRandomString = (length) => {
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         let result = '';
@@ -4133,9 +4134,19 @@ collection:
                         return result;
                     };
 
-                    const tokenResponse = insomnia.response.json();
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
 
-                    if (tokenResponse.success === true) {
+                    try {
+                        const tokenResponse = insomnia.response.json();
+                        if (!tokenResponse.success) throw new Error("Token request failed");
+
                         const token = tokenResponse.result;
                         insomnia.environment.set("blockchain_token", token);
 
@@ -4187,49 +4198,49 @@ collection:
                             }
                         };
 
-                        insomnia.sendRequest(uploadRequest, (err, res) => {
-                            if (err) return console.error("Upload API Error:", err);
+                        const uploadRes = await send(uploadRequest);
 
-                            const uploadData = res.json();
+                        const uploadData = uploadRes.json();
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return a document number");
+                        }
 
-                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
-                                const docNumberFromResponse = uploadData.result[0].documentNumber;
-                                const approvePayload = {
-                                    "data": {
-                                        "documents": [
-                                            { "documentNumber": docNumberFromResponse }
-                                        ],
-                                        "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
-                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
-                                    }
-                                };
+                        const docNumberFromResponse = uploadData.result[0].documentNumber;
 
-                                const approveRequest = {
-                                    url: `${insomnia.environment.get('host')}/invoice/df/approval`,
-                                    method: "PUT",
-                                    header: {
-                                        "Content-Type": "application/json",
-                                        "Authorization": `Bearer ${token}`
-                                    },
-                                    body: {
-                                        mode: 'raw',
-                                        raw: JSON.stringify(approvePayload)
-                                    }
-                                };
-
-                                insomnia.sendRequest(approveRequest, (err, approveRes) => {
-                                    if (err) return console.error("Approve API Error:", err);
-
-                                    insomnia.test("Flow Complete: DF Auto Accept", () => {
-                                        insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
-                                    });
-
-                                });
-                            } else {
-                                console.error("Upload failed to return a document number.");
+                        const approvePayload = {
+                            "data": {
+                                "documents": [
+                                    { "documentNumber": docNumberFromResponse }
+                                ],
+                                "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
+                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
                             }
+                        };
+
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify(approvePayload)
+                            }
+                        };
+
+                        const approveRes = await send(approveRequest);
+
+                        insomnia.test("Flow Complete: DF Auto Accept", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
                         });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
                     }
+
                 });
             settings:
               renderRequestBody: true
@@ -4244,7 +4255,7 @@ collection:
             meta:
               id: req_3199a70338854c2ab3c0d658c75d1c4a
               created: 1773630331153
-              modified: 1773630331153
+              modified: 1774926938663
               isPrivate: false
               description: ""
               sortKey: -1773630328867
@@ -4267,7 +4278,8 @@ collection:
             scripts:
               afterResponse: >-
                 insomnia.test("Sequential API Chain: Token -> Upload -> Approve
-                -> ADA Immediate", function () {
+                -> ADA Immediate = BANK REJECTED", async function () {
+
                     const generateRandomString = (length) => {
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         let result = '';
@@ -4286,9 +4298,19 @@ collection:
                         return result;
                     };
 
-                    const tokenResponse = insomnia.response.json();
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
 
-                    if (tokenResponse.success === true) {
+                    try {
+                        const tokenResponse = insomnia.response.json();
+                        if (!tokenResponse.success) throw new Error("Token request failed");
+
                         const token = tokenResponse.result;
                         insomnia.environment.set("blockchain_token", token);
 
@@ -4340,82 +4362,83 @@ collection:
                             }
                         };
 
-                        insomnia.sendRequest(uploadRequest, (err, res) => {
-                            insomnia.test("Flow: Invoice Upload", () => {
-                                insomnia.expect(res.code).to.be.oneOf([200, 201]);
-                            });
-                            if (err) return console.error("Upload API Error:", err);
-
-                            const uploadData = res.json();
-
-                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
-                                const docNumberFromResponse = uploadData.result[0].documentNumber;
-                                const approvePayload = {
-                                    "data": {
-                                        "documents": [
-                                            { "documentNumber": docNumberFromResponse }
-                                        ],
-                                        "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
-                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
-                                    }
-                                };
-
-                                const approveRequest = {
-                                    url: `${insomnia.environment.get('host')}/invoice/df/approval`,
-                                    method: "PUT",
-                                    header: {
-                                        "Content-Type": "application/json",
-                                        "Authorization": `Bearer ${token}`
-                                    },
-                                    body: {
-                                        mode: 'raw',
-                                        raw: JSON.stringify(approvePayload)
-                                    }
-                                };
-
-                                insomnia.sendRequest(approveRequest, (err, approveRes) => {
-                                    insomnia.test("Flow: Invoice Approval", () => {
-                                        insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
-                                    });
-                                    if (err) return console.error("Approve API Error:", err);
-
-                                    const adaImmediatePayload = {
-                                        "data": {
-                                            "documents": [
-                                                { "documentNumber": docNumberFromResponse }
-                                            ],
-                                            "status": "BANK_REJECTED_PAYMENT_FINANCING",
-                                            "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                            "modeOfPayment": "ADA_FINANCING",
-                                            "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                            "remarks": "Insufficient funds"
-                                        }
-                                    };
-
-                                    const adaImmediateRequest = {
-                                        url: `${insomnia.environment.get('host')}/invoice/df/ada-immediate`,
-                                        method: "POST",
-                                        header: {
-                                            "Content-Type": "application/json",
-                                            "Authorization": `Bearer ${token}`
-                                        },
-                                        body: {
-                                            mode: 'raw',
-                                            raw: JSON.stringify(adaImmediatePayload)
-                                        }
-                                    };
-
-                                    insomnia.sendRequest(adaImmediateRequest, (err, dfAdaImmediateResponse) => {
-                                        insomnia.test("Flow Complete: DF ADA Immediate -> BANK REJECTED", () => {
-                                            insomnia.expect(dfAdaImmediateResponse.code).to.be.oneOf([200, 201]);
-                                        });
-                                    });
-                                });
-                            } else {
-                                console.error("Upload failed to return a document number.");
-                            }
+                        const uploadRes = await send(uploadRequest);
+                        insomnia.test("Flow: Invoice Upload", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
                         });
+
+                        const uploadData = uploadRes.json();
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return a document number");
+                        }
+
+                        const docNumberFromResponse = uploadData.result[0].documentNumber;
+
+                        const approvePayload = {
+                            "data": {
+                                "documents": [
+                                    { "documentNumber": docNumberFromResponse }
+                                ],
+                                "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
+                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
+                            }
+                        };
+
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify(approvePayload)
+                            }
+                        };
+
+                        const approveRes = await send(approveRequest);
+                        insomnia.test("Flow: Invoice Approval", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        const adaImmediatePayload = {
+                            "data": {
+                                "documents": [
+                                    { "documentNumber": docNumberFromResponse }
+                                ],
+                                "status": "BANK_REJECTED_PAYMENT_FINANCING",
+                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                "modeOfPayment": "ADA_FINANCING",
+                                "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                "transactionId": `UBL${generateRandomNumber(8)}`,
+                                "remarks": "Bank Rejected DF ADA Imediate"
+                            }
+                        };
+
+                        const adaImmediateRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/ada-immediate`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify(adaImmediatePayload)
+                            }
+                        };
+
+                        const dfAdaImmediateResponse = await send(adaImmediateRequest);
+                        insomnia.test("Flow Complete: DF ADA Immediate -> BANK REJECTED", () => {
+                            insomnia.expect(dfAdaImmediateResponse.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
                     }
+
                 });
             settings:
               renderRequestBody: true
@@ -4430,7 +4453,7 @@ collection:
             meta:
               id: req_5b121ead32ed4c81b5f4f7a29997a3b0
               created: 1773630331153
-              modified: 1773630331153
+              modified: 1774926917112
               isPrivate: false
               description: ""
               sortKey: -1773630328866
@@ -4453,7 +4476,8 @@ collection:
             scripts:
               afterResponse: >-
                 insomnia.test("Sequential API Chain: Token -> Upload -> Approve
-                -> ADA Immediate", function () {
+                -> ADA Immediate = BANK ERROR", async function () {
+
                     const generateRandomString = (length) => {
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         let result = '';
@@ -4472,9 +4496,23 @@ collection:
                         return result;
                     };
 
-                    const tokenResponse = insomnia.response.json();
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
 
-                    if (tokenResponse.success === true) {
+                    try {
+
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success !== true) {
+                            throw new Error("Token request failed");
+                        }
+
                         const token = tokenResponse.result;
                         insomnia.environment.set("blockchain_token", token);
 
@@ -4488,6 +4526,7 @@ collection:
                         const futureDueDate = date.toISOString().split('T')[0];
                         const today = new Date().toISOString().split('T')[0];
 
+                        // 🔹 Upload
                         const uploadRequest = {
                             url: `${insomnia.environment.get('host')}/invoice/upload`,
                             method: "POST",
@@ -4526,17 +4565,31 @@ collection:
                             }
                         };
 
-                        insomnia.sendRequest(uploadRequest, (err, res) => {
-                            insomnia.test("Flow: Invoice Upload", () => {
-                                insomnia.expect(res.code).to.be.oneOf([200, 201]);
-                            });
-                            if (err) return console.error("Upload API Error:", err);
+                        const uploadRes = await send(uploadRequest);
 
-                            const uploadData = res.json();
+                        insomnia.test("Flow: Invoice Upload", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
+                        });
 
-                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
-                                const docNumberFromResponse = uploadData.result[0].documentNumber;
-                                const approvePayload = {
+                        const uploadData = uploadRes.json();
+
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return a document number");
+                        }
+
+                        const docNumberFromResponse = uploadData.result[0].documentNumber;
+
+                        // 🔹 Approve
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
                                     "data": {
                                         "documents": [
                                             { "documentNumber": docNumberFromResponse }
@@ -4544,64 +4597,52 @@ collection:
                                         "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
                                         "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
                                     }
-                                };
-
-                                const approveRequest = {
-                                    url: `${insomnia.environment.get('host')}/invoice/df/approval`,
-                                    method: "PUT",
-                                    header: {
-                                        "Content-Type": "application/json",
-                                        "Authorization": `Bearer ${token}`
-                                    },
-                                    body: {
-                                        mode: 'raw',
-                                        raw: JSON.stringify(approvePayload)
-                                    }
-                                };
-
-                                insomnia.sendRequest(approveRequest, (err, approveRes) => {
-                                    insomnia.test("Flow: Invoice Approval", () => {
-                                        insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
-                                    });
-                                    if (err) return console.error("Approve API Error:", err);
-
-                                    const adaImmediatePayload = {
-                                        "data": {
-                                            "documents": [
-                                                { "documentNumber": docNumberFromResponse }
-                                            ],
-                                            "status": "BANK_ERROR_FINANCING",
-                                            "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                            "modeOfPayment": "ADA_FINANCING",
-                                            "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                            "remarks": "Finacle Error"
-                                        }
-                                    };
-
-                                    const adaImmediateRequest = {
-                                        url: `${insomnia.environment.get('host')}/invoice/df/ada-immediate`,
-                                        method: "POST",
-                                        header: {
-                                            "Content-Type": "application/json",
-                                            "Authorization": `Bearer ${token}`
-                                        },
-                                        body: {
-                                            mode: 'raw',
-                                            raw: JSON.stringify(adaImmediatePayload)
-                                        }
-                                    };
-
-                                    insomnia.sendRequest(adaImmediateRequest, (err, dfAdaImmediateResponse) => {
-                                        insomnia.test("Flow Complete: DF ADA Immediate -> BANK ERROR", () => {
-                                            insomnia.expect(dfAdaImmediateResponse.code).to.be.oneOf([200, 201]);
-                                        });
-                                    });
-                                });
-                            } else {
-                                console.error("Upload failed to return a document number.");
+                                })
                             }
+                        };
+
+                        const approveRes = await send(approveRequest);
+
+                        insomnia.test("Flow: Invoice Approval", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
                         });
+
+                        // 🔹 ADA Immediate
+                        const adaImmediateRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/ada-immediate`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    "data": {
+                                        "documents": [
+                                            { "documentNumber": docNumberFromResponse }
+                                        ],
+                                        "status": "BANK_ERROR_FINANCING",
+                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "modeOfPayment": "ADA_FINANCING",
+                                        "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "remarks": "Bank Error DF ADA Immediate"
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfAdaImmediateResponse = await send(adaImmediateRequest);
+
+                        insomnia.test("Flow Complete: DF ADA Immediate -> BANK ERROR", () => {
+                            insomnia.expect(dfAdaImmediateResponse.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
                     }
+
                 });
             settings:
               renderRequestBody: true
@@ -4616,7 +4657,7 @@ collection:
             meta:
               id: req_d0b2357f1a6f46719ca335ad40eb5320
               created: 1773630331153
-              modified: 1773630331153
+              modified: 1774925455031
               isPrivate: false
               description: ""
               sortKey: -1773630328868
@@ -4639,7 +4680,8 @@ collection:
             scripts:
               afterResponse: >-
                 insomnia.test("Sequential API Chain: Token -> Upload -> Approve
-                -> ADA Immediate", function () {
+                -> ADA Immediate = PAID", async function () {
+
                     const generateRandomString = (length) => {
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         let result = '';
@@ -4658,9 +4700,19 @@ collection:
                         return result;
                     };
 
-                    const tokenResponse = insomnia.response.json();
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
 
-                    if (tokenResponse.success === true) {
+                    try {
+                        const tokenResponse = insomnia.response.json();
+                        if (!tokenResponse.success) throw new Error("Token request failed");
+
                         const token = tokenResponse.result;
                         insomnia.environment.set("blockchain_token", token);
 
@@ -4712,83 +4764,83 @@ collection:
                             }
                         };
 
-                        insomnia.sendRequest(uploadRequest, (err, res) => {
-                            insomnia.test("Flow: Invoice Upload", () => {
-                                insomnia.expect(res.code).to.be.oneOf([200, 201]);
-                            });
-                            if (err) return console.error("Upload API Error:", err);
-
-                            const uploadData = res.json();
-
-                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
-                                const docNumberFromResponse = uploadData.result[0].documentNumber;
-                                const approvePayload = {
-                                    "data": {
-                                        "documents": [
-                                            { "documentNumber": docNumberFromResponse }
-                                        ],
-                                        "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
-                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
-                                    }
-                                };
-
-                                const approveRequest = {
-                                    url: `${insomnia.environment.get('host')}/invoice/df/approval`,
-                                    method: "PUT",
-                                    header: {
-                                        "Content-Type": "application/json",
-                                        "Authorization": `Bearer ${token}`
-                                    },
-                                    body: {
-                                        mode: 'raw',
-                                        raw: JSON.stringify(approvePayload)
-                                    }
-                                };
-
-                                insomnia.sendRequest(approveRequest, (err, approveRes) => {
-                                    insomnia.test("Flow: Invoice Approval", () => {
-                                        insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
-                                    });
-                                    if (err) return console.error("Approve API Error:", err);
-
-                                    const adaImmediatePayload = {
-                                        "data": {
-                                            "documents": [
-                                                { "documentNumber": docNumberFromResponse }
-                                            ],
-                                            "status": "FUND_DISBURSED",
-                                            "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                            "modeOfPayment": "ADA_FINANCING",
-                                            "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                            "transactionId": `UBL${generateRandomNumber(8)}`,
-                                            "hasCwt": false
-                                        }
-                                    };
-
-                                    const adaImmediateRequest = {
-                                        url: `${insomnia.environment.get('host')}/invoice/df/ada-immediate`,
-                                        method: "POST",
-                                        header: {
-                                            "Content-Type": "application/json",
-                                            "Authorization": `Bearer ${token}`
-                                        },
-                                        body: {
-                                            mode: 'raw',
-                                            raw: JSON.stringify(adaImmediatePayload)
-                                        }
-                                    };
-
-                                    insomnia.sendRequest(adaImmediateRequest, (err, dfAdaImmediateResponse) => {
-                                        insomnia.test("Flow Complete: DF ADA Immediate -> PAID", () => {
-                                            insomnia.expect(dfAdaImmediateResponse.code).to.be.oneOf([200, 201]);
-                                        });
-                                    });
-                                });
-                            } else {
-                                console.error("Upload failed to return a document number.");
-                            }
+                        const uploadRes = await send(uploadRequest);
+                        insomnia.test("Flow: Invoice Upload", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
                         });
+
+                        const uploadData = uploadRes.json();
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return a document number");
+                        }
+
+                        const docNumberFromResponse = uploadData.result[0].documentNumber;
+
+                        const approvePayload = {
+                            "data": {
+                                "documents": [
+                                    { "documentNumber": docNumberFromResponse }
+                                ],
+                                "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
+                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
+                            }
+                        };
+
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify(approvePayload)
+                            }
+                        };
+
+                        const approveRes = await send(approveRequest);
+                        insomnia.test("Flow: Invoice Approval", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        const adaImmediatePayload = {
+                            "data": {
+                                "documents": [
+                                    { "documentNumber": docNumberFromResponse }
+                                ],
+                                "status": "FUND_DISBURSED",
+                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                "modeOfPayment": "ADA_FINANCING",
+                                "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                "transactionId": `UBL${generateRandomNumber(8)}`,
+                                "hasCwt": false
+                            }
+                        };
+
+                        const adaImmediateRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/ada-immediate`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify(adaImmediatePayload)
+                            }
+                        };
+
+                        const dfAdaImmediateResponse = await send(adaImmediateRequest);
+                        insomnia.test("Flow Complete: DF ADA Immediate -> PAID", () => {
+                            insomnia.expect(dfAdaImmediateResponse.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
                     }
+
                 });
             settings:
               renderRequestBody: true
@@ -4803,7 +4855,7 @@ collection:
             meta:
               id: req_38e05b4c580344b68040568c9e4927e7
               created: 1773630331154
-              modified: 1773630331154
+              modified: 1774927506348
               isPrivate: false
               description: ""
               sortKey: -1773630328864
@@ -4825,8 +4877,9 @@ collection:
               prefix: ""
             scripts:
               afterResponse: >-
-                insomnia.test("Sequential API Chain: Token -> Upload ->
-                Approve", function () {
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
+                -> Deduction = ACCEPTED", async function () {
+
                     const generateRandomString = (length) => {
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         let result = '';
@@ -4836,9 +4889,23 @@ collection:
                         return result;
                     };
 
-                    const tokenResponse = insomnia.response.json();
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
 
-                    if (tokenResponse.success === true) {
+                    try {
+
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success !== true) {
+                            throw new Error("Token request failed");
+                        }
+
                         const token = tokenResponse.result;
                         insomnia.environment.set("blockchain_token", token);
 
@@ -4852,6 +4919,7 @@ collection:
                         const futureDueDate = date.toISOString().split('T')[0];
                         const today = new Date().toISOString().split('T')[0];
 
+                        // 🔹 Upload
                         const uploadRequest = {
                             url: `${insomnia.environment.get('host')}/invoice/upload`,
                             method: "POST",
@@ -4890,14 +4958,30 @@ collection:
                             }
                         };
 
-                        insomnia.sendRequest(uploadRequest, (err, res) => {
-                            if (err) return console.error("Upload API Error:", err);
+                        const uploadRes = await send(uploadRequest);
+                        const uploadData = uploadRes.json();
 
-                            const uploadData = res.json();
+                        insomnia.test("Flow: Invoice Upload", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
+                        });
 
-                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
-                                const docNumberFromResponse = uploadData.result[0].documentNumber;
-                                const approvePayload = {
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return a document number");
+                        }
+
+                        const docNumberFromResponse = uploadData.result[0].documentNumber;
+
+                        // 🔹 Approve
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
                                     "data": {
                                         "documents": [
                                             { "documentNumber": docNumberFromResponse }
@@ -4905,64 +4989,55 @@ collection:
                                         "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
                                         "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
                                     }
-                                };
-
-                                const approveRequest = {
-                                    url: `${insomnia.environment.get('host')}/invoice/df/approval`,
-                                    method: "PUT",
-                                    header: {
-                                        "Content-Type": "application/json",
-                                        "Authorization": `Bearer ${token}`
-                                    },
-                                    body: {
-                                        mode: 'raw',
-                                        raw: JSON.stringify(approvePayload)
-                                    }
-                                };
-
-                                insomnia.sendRequest(approveRequest, (err, approveRes) => {
-                                    if (err) return console.error("Approve API Error:", err);
-
-                                    const deductionRequest = {
-                                        url: `${insomnia.environment.get('host')}/invoice/df/deduction/request`,
-                                        method: "POST",
-                                        header: {
-                                            "Content-Type": "application/json",
-                                            "Authorization": `Bearer ${token}`
-                                        },
-                                        body: {
-                                            mode: 'raw',
-                                            raw: JSON.stringify({
-                                                "data": {
-                                                    "deductions": [
-                                                        {
-                                                            "amount": "100",
-                                                            "code": "D100",
-                                                            "description": "Deduction description",
-                                                            "name": "Deduction name"
-                                                        }
-                                                    ],
-                                                    "documentNumber": docNumberFromResponse,
-                                                    "autoDeduct": true,
-                                                    "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
-                                                }
-                                            })
-                                        }
-                                    };
-
-                                    insomnia.sendRequest(deductionRequest, (err, deductionRequestResponse) => {
-                                        if (err) return console.error("DF Deduction Request Error:", err);
-
-                                        insomnia.test("Flow Complete: DF Deduction Request", () => {
-                                            insomnia.expect(deductionRequestResponse.code).to.be.oneOf([200, 201]);
-                                        });
-                                    });
-                                });
-                            } else {
-                                console.error("Upload failed to return a document number.");
+                                })
                             }
+                        };
+
+                        const approveRes = await send(approveRequest);
+
+                        insomnia.test("Flow: Invoice Approval", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
                         });
+
+                        // 🔹 Deduction
+                        const deductionRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/deduction/request`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    "data": {
+                                        "deductions": [
+                                            {
+                                                "amount": "100",
+                                                "code": "D100",
+                                                "description": "Deduction description",
+                                                "name": "Deduction name"
+                                            }
+                                        ],
+                                        "documentNumber": docNumberFromResponse,
+                                        "autoDeduct": true,
+                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
+                                    }
+                                })
+                            }
+                        };
+
+                        const deductionRequestResponse = await send(deductionRequest);
+
+                        insomnia.test("Flow Complete: DF Deduction Request", () => {
+                            insomnia.expect(deductionRequestResponse.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
                     }
+
                 });
             settings:
               renderRequestBody: true
@@ -4977,7 +5052,7 @@ collection:
             meta:
               id: req_9d2e62850e714da5a78b9544229a3e14
               created: 1773630331154
-              modified: 1773630331154
+              modified: 1774926215662
               isPrivate: false
               description: ""
               sortKey: -1773630328865
@@ -5000,7 +5075,8 @@ collection:
             scripts:
               afterResponse: >-
                 insomnia.test("Sequential API Chain: Token -> Upload -> Approve
-                -> ADA CRON -> PAID", function () {
+                -> ADA CRON = PAID", async function () {
+
                     const generateRandomString = (length) => {
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         let result = '';
@@ -5019,9 +5095,23 @@ collection:
                         return result;
                     };
 
-                    const tokenResponse = insomnia.response.json();
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
 
-                    if (tokenResponse.success === true) {
+                    try {
+
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success !== true) {
+                            throw new Error("Token request failed");
+                        }
+
                         const token = tokenResponse.result;
                         insomnia.environment.set("blockchain_token", token);
 
@@ -5035,6 +5125,7 @@ collection:
                         const futureDueDate = date.toISOString().split('T')[0];
                         const today = new Date().toISOString().split('T')[0];
 
+                        // 🔹 Upload
                         const uploadRequest = {
                             url: `${insomnia.environment.get('host')}/invoice/upload`,
                             method: "POST",
@@ -5073,17 +5164,31 @@ collection:
                             }
                         };
 
-                        insomnia.sendRequest(uploadRequest, (err, res) => {
-                            insomnia.test("Flow: Invoice Upload", () => {
-                                insomnia.expect(res.code).to.be.oneOf([200, 201]);
-                            });
-                            if (err) return console.error("Upload API Error:", err);
+                        const uploadRes = await send(uploadRequest);
 
-                            const uploadData = res.json();
+                        insomnia.test("Flow: Invoice Upload", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
+                        });
 
-                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
-                                const docNumberFromResponse = uploadData.result[0].documentNumber;
-                                const approvePayload = {
+                        const uploadData = uploadRes.json();
+
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return a document number");
+                        }
+
+                        const docNumberFromResponse = uploadData.result[0].documentNumber;
+
+                        // 🔹 Approve
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
                                     "data": {
                                         "documents": [
                                             { "documentNumber": docNumberFromResponse }
@@ -5091,96 +5196,81 @@ collection:
                                         "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
                                         "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
                                     }
-                                };
-
-                                const approveRequest = {
-                                    url: `${insomnia.environment.get('host')}/invoice/df/approval`,
-                                    method: "PUT",
-                                    header: {
-                                        "Content-Type": "application/json",
-                                        "Authorization": `Bearer ${token}`
-                                    },
-                                    body: {
-                                        mode: 'raw',
-                                        raw: JSON.stringify(approvePayload)
-                                    }
-                                };
-
-                                insomnia.sendRequest(approveRequest, (err, approveRes) => {
-                                    insomnia.test("Flow: Invoice Approval", () => {
-                                        insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
-                                    });
-                                    if (err) return console.error("Approve API Error:", err);
-
-                                    const fiAccessTokenPayload = {
-                                        "userId": `${insomnia.environment.get('userId')}`,
-                                        "password": `${insomnia.environment.get('password')}`
-                                    }
-
-                                    const fiAccessTokenRequest = {
-                                        url: `${insomnia.environment.get('fihost')}/access-token`,
-                                        method: "POST",
-                                        header: {
-                                            "Content-Type": "application/json"
-                                        },
-                                        body: {
-                                            mode: 'raw',
-                                            raw: JSON.stringify(fiAccessTokenPayload)
-                                        }
-                                    };
-
-                                    insomnia.sendRequest(fiAccessTokenRequest, (err, fiAccessTokenResponse) => {
-                                        insomnia.test("Flow: FI Access Token", () => {
-                                            insomnia.expect(fiAccessTokenResponse.code).to.be.oneOf([200, 201]);
-                                        });
-
-                                        if (err) return console.error("FI Access Token Error:", err);
-
-                                        const fiAccessTokenResponseJson = fiAccessTokenResponse.json();
-                                        const fiToken = fiAccessTokenResponseJson.result;
-
-                                        const groupId = generateRandomString(8);
-
-                                        const adaCRONPayload = {
-                                            "data": {
-                                                "groupId": groupId,
-                                                "documents": [
-                                                    { "number": docNumberFromResponse }
-                                                ],
-                                                "status": "FUND_DISBURSED",
-                                                "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                "modeOfPayment": "ADA_FINANCING",
-                                                "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                "transactionId": `UBL${generateRandomNumber(8)}`,
-                                                "hasCwt": false
-                                            }
-                                        };
-
-                                        const adaCRONRequest = {
-                                            url: `${insomnia.environment.get('fihost')}/group/df/ada/create`,
-                                            method: "POST",
-                                            header: {
-                                                "Content-Type": "application/json",
-                                                "Authorization": `Bearer ${fiToken}`
-                                            },
-                                            body: {
-                                                mode: 'raw',
-                                                raw: JSON.stringify(adaCRONPayload)
-                                            }
-                                        };
-
-                                        insomnia.sendRequest(adaCRONRequest, (err, dfAdaCRONResponse) => {
-                                            insomnia.test("Flow Complete: DF ADA CRON -> PAID", () => {
-                                                insomnia.expect(dfAdaCRONResponse.code).to.be.oneOf([200, 201]);
-                                            });
-                                        });
-                                    });
-                                });
-                            } else {
-                                console.error("Upload failed to return a document number.");
+                                })
                             }
+                        };
+
+                        const approveRes = await send(approveRequest);
+
+                        insomnia.test("Flow: Invoice Approval", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
                         });
+
+                        // 🔹 FI Access Token
+                        const fiAccessTokenRequest = {
+                            url: `${insomnia.environment.get('fihost')}/access-token`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json"
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    "userId": `${insomnia.environment.get('userId')}`,
+                                    "password": `${insomnia.environment.get('password')}`
+                                })
+                            }
+                        };
+
+                        const fiAccessTokenResponse = await send(fiAccessTokenRequest);
+
+                        insomnia.test("Flow: FI Access Token", () => {
+                            insomnia.expect(fiAccessTokenResponse.code).to.be.oneOf([200, 201]);
+                        });
+
+                        const fiAccessTokenResponseJson = fiAccessTokenResponse.json();
+                        const fiToken = fiAccessTokenResponseJson.result;
+
+                        const groupId = generateRandomString(8);
+
+                        // 🔹 ADA CRON
+                        const adaCRONRequest = {
+                            url: `${insomnia.environment.get('fihost')}/group/df/ada/create`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${fiToken}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    "data": {
+                                        "groupId": groupId,
+                                        "documents": [
+                                            { "number": docNumberFromResponse }
+                                        ],
+                                        "status": "FUND_DISBURSED",
+                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "modeOfPayment": "ADA_FINANCING",
+                                        "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "transactionId": `UBL${generateRandomNumber(8)}`,
+                                        "hasCwt": false
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfAdaCRONResponse = await send(adaCRONRequest);
+
+                        insomnia.test("Flow Complete: DF ADA CRON -> PAID", () => {
+                            insomnia.expect(dfAdaCRONResponse.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
                     }
+
                 });
             settings:
               renderRequestBody: true
@@ -5195,7 +5285,7 @@ collection:
             meta:
               id: req_a8467924d02d4e6e86bc71b0cc709929
               created: 1773630331154
-              modified: 1773630331154
+              modified: 1774928434104
               isPrivate: false
               description: ""
               sortKey: -1773630328862
@@ -5217,8 +5307,9 @@ collection:
               prefix: ""
             scripts:
               afterResponse: >-
-                insomnia.test("Sequential API Chain: Token -> Upload ->
-                Approve", function () {
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
+                -> CASA Request = FOR APPROVAL", async function () {
+
                     const generateRandomString = (length) => {
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         let result = '';
@@ -5228,9 +5319,22 @@ collection:
                         return result;
                     };
 
-                    const tokenResponse = insomnia.response.json();
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
 
-                    if (tokenResponse.success === true) {
+                    try {
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success !== true) {
+                            throw new Error("Token request failed");
+                        }
+
                         const token = tokenResponse.result;
                         insomnia.environment.set("blockchain_token", token);
 
@@ -5244,6 +5348,7 @@ collection:
                         const futureDueDate = date.toISOString().split('T')[0];
                         const today = new Date().toISOString().split('T')[0];
 
+                        // 🔹 Upload
                         const uploadRequest = {
                             url: `${insomnia.environment.get('host')}/invoice/upload`,
                             method: "POST",
@@ -5254,107 +5359,106 @@ collection:
                             body: {
                                 mode: 'raw',
                                 raw: JSON.stringify({
-                                    "role": "SELLER",
-                                    "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                    "uploadCode": "internal",
-                                    "data": {
-                                        "batchId": batchId,
-                                        "fileName": "uploadfile.csv",
-                                        "orgCode": "ESC",
-                                        "role": "SELLER",
-                                        "documents": [{
-                                            "documentNumber": generatedDocNum,
-                                            "documentType": "IN",
-                                            "buyerCode": "EBC",
-                                            "buyerName": "Example Buyer Company",
-                                            "sellerCode": "ESC",
-                                            "sellerName": "Example Seller Company",
-                                            "transactionDate": today,
-                                            "deliveryDate": today,
-                                            "dueDate": futureDueDate,
-                                            "currency": "PHP",
-                                            "outstandingAmount": 1000,
-                                            "totalAmount": "1000.00",
-                                            "prioritySeller": true
+                                    role: "SELLER",
+                                    userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                    uploadCode: "internal",
+                                    data: {
+                                        batchId,
+                                        fileName: "uploadfile.csv",
+                                        orgCode: "ESC",
+                                        role: "SELLER",
+                                        documents: [{
+                                            documentNumber: generatedDocNum,
+                                            documentType: "IN",
+                                            buyerCode: "EBC",
+                                            buyerName: "Example Buyer Company",
+                                            sellerCode: "ESC",
+                                            sellerName: "Example Seller Company",
+                                            transactionDate: today,
+                                            deliveryDate: today,
+                                            dueDate: futureDueDate,
+                                            currency: "PHP",
+                                            outstandingAmount: 1000,
+                                            totalAmount: "1000.00",
+                                            prioritySeller: true
                                         }]
                                     }
                                 })
                             }
                         };
 
-                        insomnia.sendRequest(uploadRequest, (err, res) => {
-                            if (err) return console.error("Upload API Error:", err);
+                        const uploadRes = await send(uploadRequest);
+                        const uploadData = uploadRes.json();
 
-                            const uploadData = res.json();
-
-                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
-                                const docNumberFromResponse = uploadData.result[0].documentNumber;
-                                const approvePayload = {
-                                    "data": {
-                                        "documents": [
-                                            { "documentNumber": docNumberFromResponse }
-                                        ],
-                                        "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
-                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
-                                    }
-                                };
-
-                                const approveRequest = {
-                                    url: `${insomnia.environment.get('host')}/invoice/df/approval`,
-                                    method: "PUT",
-                                    header: {
-                                        "Content-Type": "application/json",
-                                        "Authorization": `Bearer ${token}`
-                                    },
-                                    body: {
-                                        mode: 'raw',
-                                        raw: JSON.stringify(approvePayload)
-                                    }
-                                };
-
-                                insomnia.sendRequest(approveRequest, (err, approveRes) => {
-                                    if (err) return console.error("Approve API Error:", err);
-
-                                    const groupId = generateRandomString(8);
-
-                                    const dfCasaPaymentRequest = {
-                                        url: `${insomnia.environment.get('host')}/group/df/create`,
-                                        method: "POST",
-                                        header: {
-                                            "Content-Type": "application/json",
-                                            "Authorization": `Bearer ${token}`
-                                        },
-                                        body: {
-                                            mode: 'raw',
-                                            raw: JSON.stringify({
-                                                "data": {
-                                                    "documents": [
-                                                        {
-                                                            "number": docNumberFromResponse,
-                                                            "requestedLoanAmount": "1000"
-                                                        }
-                                                    ],
-                                                    "groupId": groupId,
-                                                    "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                    "modeOfPayment": "AC_PAYMENT"
-                                                }
-                                            })
-                                        }
-                                    };
-
-                                    insomnia.sendRequest(dfCasaPaymentRequest, (err, dfCasaPaymentRequestResponse) => {
-                                        if (err) return console.error("DF CASA Payment Request Error:", err);
-
-                                        insomnia.test("Flow Complete: DF CASA Payment Request", () => {
-                                            insomnia.expect(dfCasaPaymentRequestResponse.code).to.be.oneOf([200, 201]);
-                                        });
-                                    });
-                                });
-                            } else {
-                                console.error("Upload failed to return a document number.");
-                            }
+                        insomnia.test("Flow: Invoice Upload", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
                         });
+
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return a document number");
+                        }
+
+                        const docNumber = uploadData.result[0].documentNumber;
+
+                        // 🔹 Approve
+                        const approvePayload = {
+                            data: {
+                                documents: [{ documentNumber: docNumber }],
+                                status: "SELLER_CHECKER_APPROVED_DOCUMENT",
+                                userId: insomnia.variables.replaceIn('{{$randomUUID}}')
+                            }
+                        };
+
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: { mode: 'raw', raw: JSON.stringify(approvePayload) }
+                        };
+
+                        const approveRes = await send(approveRequest);
+
+                        insomnia.test("Flow: Invoice Approval", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 DF CASA Payment
+                        const groupId = generateRandomString(8);
+
+                        const dfCasaPaymentRequest = {
+                            url: `${insomnia.environment.get('host')}/group/df/create`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        documents: [{ number: docNumber, requestedLoanAmount: "1000" }],
+                                        groupId,
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        modeOfPayment: "AC_PAYMENT"
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfCasaRes = await send(dfCasaPaymentRequest);
+
+                        insomnia.test("Flow Complete: DF CASA Payment Request", () => {
+                            insomnia.expect(dfCasaRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
                     }
+
                 });
             settings:
               renderRequestBody: true
@@ -5369,7 +5473,7 @@ collection:
             meta:
               id: req_e4a1f2b9ecaa4664b5ce02cb8ac315a1
               created: 1773630331154
-              modified: 1773630331154
+              modified: 1774928271495
               isPrivate: false
               description: ""
               sortKey: -1773630328863
@@ -5391,8 +5495,10 @@ collection:
               prefix: ""
             scripts:
               afterResponse: >-
-                insomnia.test("Sequential API Chain: Token -> Upload ->
-                Approve", function () {
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
+                -> Deduction -> CASA Request = FOR APPROVAL", async function ()
+                {
+
                     const generateRandomString = (length) => {
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         let result = '';
@@ -5402,9 +5508,22 @@ collection:
                         return result;
                     };
 
-                    const tokenResponse = insomnia.response.json();
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
 
-                    if (tokenResponse.success === true) {
+                    try {
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success !== true) {
+                            throw new Error("Token request failed");
+                        }
+
                         const token = tokenResponse.result;
                         insomnia.environment.set("blockchain_token", token);
 
@@ -5418,6 +5537,7 @@ collection:
                         const futureDueDate = date.toISOString().split('T')[0];
                         const today = new Date().toISOString().split('T')[0];
 
+                        // 🔹 Upload
                         const uploadRequest = {
                             url: `${insomnia.environment.get('host')}/invoice/upload`,
                             method: "POST",
@@ -5428,139 +5548,139 @@ collection:
                             body: {
                                 mode: 'raw',
                                 raw: JSON.stringify({
-                                    "role": "SELLER",
-                                    "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                    "uploadCode": "internal",
-                                    "data": {
-                                        "batchId": batchId,
-                                        "fileName": "uploadfile.csv",
-                                        "orgCode": "ESC",
-                                        "role": "SELLER",
-                                        "documents": [{
-                                            "documentNumber": generatedDocNum,
-                                            "documentType": "IN",
-                                            "buyerCode": "EBC",
-                                            "buyerName": "Example Buyer Company",
-                                            "sellerCode": "ESC",
-                                            "sellerName": "Example Seller Company",
-                                            "transactionDate": today,
-                                            "deliveryDate": today,
-                                            "dueDate": futureDueDate,
-                                            "currency": "PHP",
-                                            "outstandingAmount": 1000,
-                                            "totalAmount": "1000.00",
-                                            "prioritySeller": true
+                                    role: "SELLER",
+                                    userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                    uploadCode: "internal",
+                                    data: {
+                                        batchId,
+                                        fileName: "uploadfile.csv",
+                                        orgCode: "ESC",
+                                        role: "SELLER",
+                                        documents: [{
+                                            documentNumber: generatedDocNum,
+                                            documentType: "IN",
+                                            buyerCode: "EBC",
+                                            buyerName: "Example Buyer Company",
+                                            sellerCode: "ESC",
+                                            sellerName: "Example Seller Company",
+                                            transactionDate: today,
+                                            deliveryDate: today,
+                                            dueDate: futureDueDate,
+                                            currency: "PHP",
+                                            outstandingAmount: 1000,
+                                            totalAmount: "1000.00",
+                                            prioritySeller: true
                                         }]
                                     }
                                 })
                             }
                         };
 
-                        insomnia.sendRequest(uploadRequest, (err, res) => {
-                            if (err) return console.error("Upload API Error:", err);
+                        const uploadRes = await send(uploadRequest);
 
-                            const uploadData = res.json();
-
-                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
-                                const docNumberFromResponse = uploadData.result[0].documentNumber;
-                                const approvePayload = {
-                                    "data": {
-                                        "documents": [
-                                            { "documentNumber": docNumberFromResponse }
-                                        ],
-                                        "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
-                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
-                                    }
-                                };
-
-                                const approveRequest = {
-                                    url: `${insomnia.environment.get('host')}/invoice/df/approval`,
-                                    method: "PUT",
-                                    header: {
-                                        "Content-Type": "application/json",
-                                        "Authorization": `Bearer ${token}`
-                                    },
-                                    body: {
-                                        mode: 'raw',
-                                        raw: JSON.stringify(approvePayload)
-                                    }
-                                };
-
-                                insomnia.sendRequest(approveRequest, (err, approveRes) => {
-                                    if (err) return console.error("Approve API Error:", err);
-
-                                    const deductionRequest = {
-                                        url: `${insomnia.environment.get('host')}/invoice/df/deduction/request`,
-                                        method: "POST",
-                                        header: {
-                                            "Content-Type": "application/json",
-                                            "Authorization": `Bearer ${token}`
-                                        },
-                                        body: {
-                                            mode: 'raw',
-                                            raw: JSON.stringify({
-                                                "data": {
-                                                    "deductions": [
-                                                        {
-                                                            "amount": "100",
-                                                            "code": "D100",
-                                                            "description": "Deduction description",
-                                                            "name": "Deduction name"
-                                                        }
-                                                    ],
-                                                    "documentNumber": docNumberFromResponse,
-                                                    "autoDeduct": true,
-                                                    "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
-                                                }
-                                            })
-                                        }
-                                    };
-
-                                    insomnia.sendRequest(deductionRequest, (err, deductionRequestResponse) => {
-                                        if (err) return console.error("DF Deduction Request Error:", err);
-
-                                        const groupId = generateRandomString(8);
-
-                                        const dfCasaPaymentRequest = {
-                                            url: `${insomnia.environment.get('host')}/group/df/create`,
-                                            method: "POST",
-                                            header: {
-                                                "Content-Type": "application/json",
-                                                "Authorization": `Bearer ${token}`
-                                            },
-                                            body: {
-                                                mode: 'raw',
-                                                raw: JSON.stringify({
-                                                    "data": {
-                                                        "documents": [
-                                                            {
-                                                                "number": docNumberFromResponse,
-                                                                "requestedLoanAmount": "1000"
-                                                            }
-                                                        ],
-                                                        "groupId": groupId,
-                                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                        "modeOfPayment": "AC_PAYMENT"
-                                                    }
-                                                })
-                                            }
-                                        };
-
-                                        insomnia.sendRequest(dfCasaPaymentRequest, (err, dfCasaPaymentRequestResponse) => {
-                                            if (err) return console.error("DF Deduction CASA Request Error:", err);
-
-                                            insomnia.test(`DF CASA Request`, () => {
-
-                                                insomnia.expect(dfCasaPaymentRequestResponse.json().success, dfCasaPaymentRequestResponse.json().message).to.be.true
-                                            });
-                                        });
-                                    });
-                                });
-                            } else {
-                                console.error("Upload failed to return a document number.");
-                            }
+                        insomnia.test("Flow: Invoice Upload", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
                         });
+
+                        const uploadData = uploadRes.json();
+
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return document number");
+                        }
+
+                        const docNumber = uploadData.result[0].documentNumber;
+
+                        // 🔹 Approve
+                        const approvePayload = {
+                            data: {
+                                documents: [{ documentNumber: docNumber }],
+                                status: "SELLER_CHECKER_APPROVED_DOCUMENT",
+                                userId: insomnia.variables.replaceIn('{{$randomUUID}}')
+                            }
+                        };
+
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: { mode: 'raw', raw: JSON.stringify(approvePayload) }
+                        };
+
+                        const approveRes = await send(approveRequest);
+
+                        insomnia.test("Flow: Invoice Approval", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 Deduction Request
+                        const deductionRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/deduction/request`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        deductions: [{
+                                            amount: "100",
+                                            code: "D100",
+                                            description: "Deduction description",
+                                            name: "Deduction name"
+                                        }],
+                                        documentNumber: docNumber,
+                                        autoDeduct: true,
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}')
+                                    }
+                                })
+                            }
+                        };
+
+                        const deductionRes = await send(deductionRequest);
+
+                        insomnia.test("Flow: Deduction Request", () => {
+                            insomnia.expect(deductionRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 DF CASA Request
+                        const groupId = generateRandomString(8);
+
+                        const dfCasaPaymentRequest = {
+                            url: `${insomnia.environment.get('host')}/group/df/create`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        documents: [{ number: docNumber, requestedLoanAmount: "1000" }],
+                                        groupId,
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        modeOfPayment: "AC_PAYMENT"
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfCasaRes = await send(dfCasaPaymentRequest);
+
+                        insomnia.test("Flow Complete: DF CASA Request", () => {
+                            insomnia.expect(dfCasaRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
                     }
+
                 });
             settings:
               renderRequestBody: true
@@ -5575,7 +5695,7 @@ collection:
             meta:
               id: req_062651deec0e447a8ac0acfed79840e4
               created: 1773630331155
-              modified: 1773630331155
+              modified: 1774928907663
               isPrivate: false
               description: ""
               sortKey: -1773630328861
@@ -5597,8 +5717,9 @@ collection:
               prefix: ""
             scripts:
               afterResponse: >-
-                insomnia.test("Sequential API Chain: Token -> Upload ->
-                Approve", function () {
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
+                -> CASA Request -> CASA Payment = PAID", async function () {
+
                     const generateRandomString = (length) => {
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         let result = '';
@@ -5617,9 +5738,22 @@ collection:
                         return result;
                     };
 
-                    const tokenResponse = insomnia.response.json();
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
 
-                    if (tokenResponse.success === true) {
+                    try {
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success !== true) {
+                            throw new Error("Token request failed");
+                        }
+
                         const token = tokenResponse.result;
                         insomnia.environment.set("blockchain_token", token);
 
@@ -5633,6 +5767,7 @@ collection:
                         const futureDueDate = date.toISOString().split('T')[0];
                         const today = new Date().toISOString().split('T')[0];
 
+                        // 🔹 Upload
                         const uploadRequest = {
                             url: `${insomnia.environment.get('host')}/invoice/upload`,
                             method: "POST",
@@ -5643,142 +5778,134 @@ collection:
                             body: {
                                 mode: 'raw',
                                 raw: JSON.stringify({
-                                    "role": "SELLER",
-                                    "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                    "uploadCode": "internal",
-                                    "data": {
-                                        "batchId": batchId,
-                                        "fileName": "uploadfile.csv",
-                                        "orgCode": "ESC",
-                                        "role": "SELLER",
-                                        "documents": [{
-                                            "documentNumber": generatedDocNum,
-                                            "documentType": "IN",
-                                            "buyerCode": "EBC",
-                                            "buyerName": "Example Buyer Company",
-                                            "sellerCode": "ESC",
-                                            "sellerName": "Example Seller Company",
-                                            "transactionDate": today,
-                                            "deliveryDate": today,
-                                            "dueDate": futureDueDate,
-                                            "currency": "PHP",
-                                            "outstandingAmount": 1000,
-                                            "totalAmount": "1000.00",
-                                            "prioritySeller": true
+                                    role: "SELLER",
+                                    userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                    uploadCode: "internal",
+                                    data: {
+                                        batchId,
+                                        fileName: "uploadfile.csv",
+                                        orgCode: "ESC",
+                                        role: "SELLER",
+                                        documents: [{
+                                            documentNumber: generatedDocNum,
+                                            documentType: "IN",
+                                            buyerCode: "EBC",
+                                            buyerName: "Example Buyer Company",
+                                            sellerCode: "ESC",
+                                            sellerName: "Example Seller Company",
+                                            transactionDate: today,
+                                            deliveryDate: today,
+                                            dueDate: futureDueDate,
+                                            currency: "PHP",
+                                            outstandingAmount: 1000,
+                                            totalAmount: "1000.00",
+                                            prioritySeller: true
                                         }]
                                     }
                                 })
                             }
                         };
 
-                        insomnia.sendRequest(uploadRequest, (err, res) => {
-                            insomnia.test("Flow: Invoice Upload", () => {
-                                insomnia.expect(res.code).to.be.oneOf([200, 201]);
-                            });
-                            if (err) return console.error("Upload API Error:", err);
-
-                            const uploadData = res.json();
-
-                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
-                                const docNumberFromResponse = uploadData.result[0].documentNumber;
-                                const approvePayload = {
-                                    "data": {
-                                        "documents": [
-                                            { "documentNumber": docNumberFromResponse }
-                                        ],
-                                        "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
-                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
-                                    }
-                                };
-
-                                const approveRequest = {
-                                    url: `${insomnia.environment.get('host')}/invoice/df/approval`,
-                                    method: "PUT",
-                                    header: {
-                                        "Content-Type": "application/json",
-                                        "Authorization": `Bearer ${token}`
-                                    },
-                                    body: {
-                                        mode: 'raw',
-                                        raw: JSON.stringify(approvePayload)
-                                    }
-                                };
-
-                                insomnia.sendRequest(approveRequest, (err, approveRes) => {
-                                    insomnia.test("Flow: Invoice Approval", () => {
-                                        insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
-                                    });
-                                    if (err) return console.error("Approve API Error:", err);
-
-                                    const groupId = generateRandomString(8);
-
-                                    const dfCasaPaymentRequest = {
-                                        url: `${insomnia.environment.get('host')}/group/df/create`,
-                                        method: "POST",
-                                        header: {
-                                            "Content-Type": "application/json",
-                                            "Authorization": `Bearer ${token}`
-                                        },
-                                        body: {
-                                            mode: 'raw',
-                                            raw: JSON.stringify({
-                                                "data": {
-                                                    "documents": [
-                                                        {
-                                                            "number": docNumberFromResponse,
-                                                            "requestedLoanAmount": "1000"
-                                                        }
-                                                    ],
-                                                    "groupId": groupId,
-                                                    "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                    "modeOfPayment": "AC_PAYMENT"
-                                                }
-                                            })
-                                        }
-                                    };
-
-                                    insomnia.sendRequest(dfCasaPaymentRequest, (err, dfCasaPaymentRequestResponse) => {
-                                        insomnia.test("Flow: Invoice CASA Payment Request", () => {
-                                            insomnia.expect(dfCasaPaymentRequestResponse.code).to.be.oneOf([200, 201]);
-                                        });
-                                        if (err) return console.error("DF CASA Payment Request Error:", err);
-
-                                        const transactionId = `UBL${generateRandomNumber(8)}`;
-
-                                        const dfCasaPaymentApprovalRequest = {
-                                            url: `${insomnia.environment.get('host')}/group/df/approval`,
-                                            method: "PUT",
-                                            header: {
-                                                "Content-Type": "application/json",
-                                                "Authorization": `Bearer ${token}`
-                                            },
-                                            body: {
-                                                mode: 'raw',
-                                                raw: JSON.stringify({
-                                                    "data": {
-                                                        "groupId": groupId,
-                                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                        "status": "FUND_DISBURSED",
-                                                        "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                        "transactionId": transactionId,
-                                                        "hasCwt": false
-                                                    }
-                                                })
-                                            }
-                                        };
-
-                                        insomnia.sendRequest(dfCasaPaymentApprovalRequest, (err, dfCasaPaymentApprovalResponse) => {
-                                            insomnia.test("Flow Complete: DF CASA Payment -> PAID", () => {
-                                                insomnia.expect(dfCasaPaymentApprovalResponse.code).to.be.oneOf([200, 201]);
-                                            });
-                                        });
-                                    });
-                                });
-                            } else {
-                                console.error("Upload failed to return a document number.");
-                            }
+                        const uploadRes = await send(uploadRequest);
+                        insomnia.test("Flow: Invoice Upload", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
                         });
+
+                        const uploadData = uploadRes.json();
+
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return a document number");
+                        }
+
+                        const docNumber = uploadData.result[0].documentNumber;
+
+                        // 🔹 Approve
+                        const approvePayload = {
+                            data: {
+                                documents: [{ documentNumber: docNumber }],
+                                status: "SELLER_CHECKER_APPROVED_DOCUMENT",
+                                userId: insomnia.variables.replaceIn('{{$randomUUID}}')
+                            }
+                        };
+
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: { mode: 'raw', raw: JSON.stringify(approvePayload) }
+                        };
+
+                        const approveRes = await send(approveRequest);
+                        insomnia.test("Flow: Invoice Approval", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 DF CASA Payment Request
+                        const groupId = generateRandomString(8);
+
+                        const dfCasaPaymentRequest = {
+                            url: `${insomnia.environment.get('host')}/group/df/create`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        documents: [{ number: docNumber, requestedLoanAmount: "1000" }],
+                                        groupId,
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        modeOfPayment: "AC_PAYMENT"
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfCasaRes = await send(dfCasaPaymentRequest);
+                        insomnia.test("Flow: Invoice CASA Payment Request", () => {
+                            insomnia.expect(dfCasaRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 DF CASA Payment Approval
+                        const transactionId = `UBL${generateRandomNumber(8)}`;
+
+                        const dfCasaPaymentApprovalRequest = {
+                            url: `${insomnia.environment.get('host')}/group/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        groupId,
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        status: "FUND_DISBURSED",
+                                        referenceId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        transactionId,
+                                        hasCwt: false
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfCasaApprovalRes = await send(dfCasaPaymentApprovalRequest);
+                        insomnia.test("Flow Complete: DF CASA Payment -> PAID", () => {
+                            insomnia.expect(dfCasaApprovalRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
                     }
+
                 });
             settings:
               renderRequestBody: true
@@ -5793,7 +5920,7 @@ collection:
             meta:
               id: req_3f8a2a2091d9445d90cb74e8c34528ff
               created: 1773630331155
-              modified: 1773630331155
+              modified: 1774937241250
               isPrivate: false
               description: ""
               sortKey: -1773630328859
@@ -5815,8 +5942,10 @@ collection:
               prefix: ""
             scripts:
               afterResponse: >-
-                insomnia.test("Sequential API Chain: Token -> Upload ->
-                Approve", function () {
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
+                -> CASA Request -> CASA Payment = BANK REJECTED", async function
+                () {
+
                     const generateRandomString = (length) => {
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         let result = '';
@@ -5826,9 +5955,31 @@ collection:
                         return result;
                     };
 
-                    const tokenResponse = insomnia.response.json();
+                    const generateRandomNumber = (length) => {
+                        const chars = '0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
 
-                    if (tokenResponse.success === true) {
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
+
+                    try {
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success !== true) {
+                            throw new Error("Token request failed");
+                        }
+
                         const token = tokenResponse.result;
                         insomnia.environment.set("blockchain_token", token);
 
@@ -5842,6 +5993,7 @@ collection:
                         const futureDueDate = date.toISOString().split('T')[0];
                         const today = new Date().toISOString().split('T')[0];
 
+                        // 🔹 Upload
                         const uploadRequest = {
                             url: `${insomnia.environment.get('host')}/invoice/upload`,
                             method: "POST",
@@ -5852,139 +6004,133 @@ collection:
                             body: {
                                 mode: 'raw',
                                 raw: JSON.stringify({
-                                    "role": "SELLER",
-                                    "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                    "uploadCode": "internal",
-                                    "data": {
-                                        "batchId": batchId,
-                                        "fileName": "uploadfile.csv",
-                                        "orgCode": "ESC",
-                                        "role": "SELLER",
-                                        "documents": [{
-                                            "documentNumber": generatedDocNum,
-                                            "documentType": "IN",
-                                            "buyerCode": "EBC",
-                                            "buyerName": "Example Buyer Company",
-                                            "sellerCode": "ESC",
-                                            "sellerName": "Example Seller Company",
-                                            "transactionDate": today,
-                                            "deliveryDate": today,
-                                            "dueDate": futureDueDate,
-                                            "currency": "PHP",
-                                            "outstandingAmount": 1000,
-                                            "totalAmount": "1000.00",
-                                            "prioritySeller": true
+                                    role: "SELLER",
+                                    userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                    uploadCode: "internal",
+                                    data: {
+                                        batchId,
+                                        fileName: "uploadfile.csv",
+                                        orgCode: "ESC",
+                                        role: "SELLER",
+                                        documents: [{
+                                            documentNumber: generatedDocNum,
+                                            documentType: "IN",
+                                            buyerCode: "EBC",
+                                            buyerName: "Example Buyer Company",
+                                            sellerCode: "ESC",
+                                            sellerName: "Example Seller Company",
+                                            transactionDate: today,
+                                            deliveryDate: today,
+                                            dueDate: futureDueDate,
+                                            currency: "PHP",
+                                            outstandingAmount: 1000,
+                                            totalAmount: "1000.00",
+                                            prioritySeller: true
                                         }]
                                     }
                                 })
                             }
                         };
 
-                        insomnia.sendRequest(uploadRequest, (err, res) => {
-                            insomnia.test("Flow: Invoice Upload", () => {
-                                insomnia.expect(res.code).to.be.oneOf([200, 201]);
-                            });
-                            if (err) return console.error("Upload API Error:", err);
-
-                            const uploadData = res.json();
-
-                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
-                                const docNumberFromResponse = uploadData.result[0].documentNumber;
-                                const approvePayload = {
-                                    "data": {
-                                        "documents": [
-                                            { "documentNumber": docNumberFromResponse }
-                                        ],
-                                        "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
-                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
-                                    }
-                                };
-
-                                const approveRequest = {
-                                    url: `${insomnia.environment.get('host')}/invoice/df/approval`,
-                                    method: "PUT",
-                                    header: {
-                                        "Content-Type": "application/json",
-                                        "Authorization": `Bearer ${token}`
-                                    },
-                                    body: {
-                                        mode: 'raw',
-                                        raw: JSON.stringify(approvePayload)
-                                    }
-                                };
-
-                                insomnia.sendRequest(approveRequest, (err, approveRes) => {
-                                    insomnia.test("Flow: Invoice Approval", () => {
-                                        insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
-                                    });
-                                    if (err) return console.error("Approve API Error:", err);
-
-                                    const groupId = generateRandomString(8);
-
-                                    const dfCasaPaymentRequest = {
-                                        url: `${insomnia.environment.get('host')}/group/df/create`,
-                                        method: "POST",
-                                        header: {
-                                            "Content-Type": "application/json",
-                                            "Authorization": `Bearer ${token}`
-                                        },
-                                        body: {
-                                            mode: 'raw',
-                                            raw: JSON.stringify({
-                                                "data": {
-                                                    "documents": [
-                                                        {
-                                                            "number": docNumberFromResponse,
-                                                            "requestedLoanAmount": "1000"
-                                                        }
-                                                    ],
-                                                    "groupId": groupId,
-                                                    "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                    "modeOfPayment": "AC_PAYMENT"
-                                                }
-                                            })
-                                        }
-                                    };
-
-                                    insomnia.sendRequest(dfCasaPaymentRequest, (err, dfCasaPaymentRequestResponse) => {
-                                        insomnia.test("Flow: Invoice CASA Payment Request", () => {
-                                            insomnia.expect(dfCasaPaymentRequestResponse.code).to.be.oneOf([200, 201]);
-                                        });
-                                        if (err) return console.error("DF CASA Payment Request Error:", err);
-
-                                        const dfCasaPaymentApprovalRequest = {
-                                            url: `${insomnia.environment.get('host')}/group/df/approval`,
-                                            method: "PUT",
-                                            header: {
-                                                "Content-Type": "application/json",
-                                                "Authorization": `Bearer ${token}`
-                                            },
-                                            body: {
-                                                mode: 'raw',
-                                                raw: JSON.stringify({
-                                                    "data": {
-                                                        "groupId": groupId,
-                                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                        "status": "BANK_REJECTED_PAYMENT_CASA",
-                                                        "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                        "remarks": "Bank Rejected"
-                                                    }
-                                                })
-                                            }
-                                        };
-
-                                        insomnia.sendRequest(dfCasaPaymentApprovalRequest, (err, dfCasaPaymentApprovalResponse) => {
-                                            insomnia.test("Flow Complete: DF CASA Payment -> BANK REJECTED", () => {
-                                                insomnia.expect(dfCasaPaymentApprovalResponse.code).to.be.oneOf([200, 201]);
-                                            });
-                                        });
-                                    });
-                                });
-                            } else {
-                                console.error("Upload failed to return a document number.");
-                            }
+                        const uploadRes = await send(uploadRequest);
+                        insomnia.test("Flow: Invoice Upload", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
                         });
+
+                        const uploadData = uploadRes.json();
+
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return a document number");
+                        }
+
+                        const docNumber = uploadData.result[0].documentNumber;
+
+                        // 🔹 Approve
+                        const approvePayload = {
+                            data: {
+                                documents: [{ documentNumber: docNumber }],
+                                status: "SELLER_CHECKER_APPROVED_DOCUMENT",
+                                userId: insomnia.variables.replaceIn('{{$randomUUID}}')
+                            }
+                        };
+
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: { mode: 'raw', raw: JSON.stringify(approvePayload) }
+                        };
+
+                        const approveRes = await send(approveRequest);
+                        insomnia.test("Flow: Invoice Approval", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 DF CASA Payment Request
+                        const groupId = generateRandomString(8);
+
+                        const dfCasaPaymentRequest = {
+                            url: `${insomnia.environment.get('host')}/group/df/create`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        documents: [{ number: docNumber, requestedLoanAmount: "1000" }],
+                                        groupId,
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        modeOfPayment: "AC_PAYMENT"
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfCasaRes = await send(dfCasaPaymentRequest);
+                        insomnia.test("Flow: Invoice CASA Payment Request", () => {
+                            insomnia.expect(dfCasaRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 DF CASA Payment Approval
+                        const transactionId = `UBL${generateRandomNumber(8)}`;
+
+                        const dfCasaPaymentApprovalRequest = {
+                            url: `${insomnia.environment.get('host')}/group/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        "groupId": groupId,
+                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "status": "BANK_REJECTED_PAYMENT_CASA",
+                                        "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "remarks": "Bank Rejected DF CASA"
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfCasaApprovalRes = await send(dfCasaPaymentApprovalRequest);
+                        insomnia.test("Flow Complete: DF CASA Payment -> BANK REJECTED", () => {
+                            insomnia.expect(dfCasaApprovalRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
                     }
+
                 });
             settings:
               renderRequestBody: true
@@ -5999,7 +6145,7 @@ collection:
             meta:
               id: req_b0686fa31abf4c17b4f07b377b5bac4e
               created: 1773630331155
-              modified: 1773630331155
+              modified: 1774936855103
               isPrivate: false
               description: ""
               sortKey: -1773630328860
@@ -6021,8 +6167,10 @@ collection:
               prefix: ""
             scripts:
               afterResponse: >-
-                insomnia.test("Sequential API Chain: Token -> Upload ->
-                Approve", function () {
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
+                -> CASA Request -> CASA Payment = REJECTED BY BUYER", async
+                function () {
+
                     const generateRandomString = (length) => {
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         let result = '';
@@ -6032,9 +6180,31 @@ collection:
                         return result;
                     };
 
-                    const tokenResponse = insomnia.response.json();
+                    const generateRandomNumber = (length) => {
+                        const chars = '0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
 
-                    if (tokenResponse.success === true) {
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
+
+                    try {
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success !== true) {
+                            throw new Error("Token request failed");
+                        }
+
                         const token = tokenResponse.result;
                         insomnia.environment.set("blockchain_token", token);
 
@@ -6048,6 +6218,7 @@ collection:
                         const futureDueDate = date.toISOString().split('T')[0];
                         const today = new Date().toISOString().split('T')[0];
 
+                        // 🔹 Upload
                         const uploadRequest = {
                             url: `${insomnia.environment.get('host')}/invoice/upload`,
                             method: "POST",
@@ -6058,129 +6229,132 @@ collection:
                             body: {
                                 mode: 'raw',
                                 raw: JSON.stringify({
-                                    "role": "SELLER",
-                                    "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                    "uploadCode": "internal",
-                                    "data": {
-                                        "batchId": batchId,
-                                        "fileName": "uploadfile.csv",
-                                        "orgCode": "ESC",
-                                        "role": "SELLER",
-                                        "documents": [{
-                                            "documentNumber": generatedDocNum,
-                                            "documentType": "IN",
-                                            "buyerCode": "EBC",
-                                            "buyerName": "Example Buyer Company",
-                                            "sellerCode": "ESC",
-                                            "sellerName": "Example Seller Company",
-                                            "transactionDate": today,
-                                            "deliveryDate": today,
-                                            "dueDate": futureDueDate,
-                                            "currency": "PHP",
-                                            "outstandingAmount": 1000,
-                                            "totalAmount": "1000.00",
-                                            "prioritySeller": true
+                                    role: "SELLER",
+                                    userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                    uploadCode: "internal",
+                                    data: {
+                                        batchId,
+                                        fileName: "uploadfile.csv",
+                                        orgCode: "ESC",
+                                        role: "SELLER",
+                                        documents: [{
+                                            documentNumber: generatedDocNum,
+                                            documentType: "IN",
+                                            buyerCode: "EBC",
+                                            buyerName: "Example Buyer Company",
+                                            sellerCode: "ESC",
+                                            sellerName: "Example Seller Company",
+                                            transactionDate: today,
+                                            deliveryDate: today,
+                                            dueDate: futureDueDate,
+                                            currency: "PHP",
+                                            outstandingAmount: 1000,
+                                            totalAmount: "1000.00",
+                                            prioritySeller: true
                                         }]
                                     }
                                 })
                             }
                         };
 
-                        insomnia.sendRequest(uploadRequest, (err, res) => {
-                            if (err) return console.error("Upload API Error:", err);
-
-                            const uploadData = res.json();
-
-                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
-                                const docNumberFromResponse = uploadData.result[0].documentNumber;
-                                const approvePayload = {
-                                    "data": {
-                                        "documents": [
-                                            { "documentNumber": docNumberFromResponse }
-                                        ],
-                                        "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
-                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
-                                    }
-                                };
-
-                                const approveRequest = {
-                                    url: `${insomnia.environment.get('host')}/invoice/df/approval`,
-                                    method: "PUT",
-                                    header: {
-                                        "Content-Type": "application/json",
-                                        "Authorization": `Bearer ${token}`
-                                    },
-                                    body: {
-                                        mode: 'raw',
-                                        raw: JSON.stringify(approvePayload)
-                                    }
-                                };
-
-                                insomnia.sendRequest(approveRequest, (err, approveRes) => {
-                                    if (err) return console.error("Approve API Error:", err);
-
-                                    const groupId = generateRandomString(8);
-
-                                    const dfCasaPaymentRequest = {
-                                        url: `${insomnia.environment.get('host')}/group/df/create`,
-                                        method: "POST",
-                                        header: {
-                                            "Content-Type": "application/json",
-                                            "Authorization": `Bearer ${token}`
-                                        },
-                                        body: {
-                                            mode: 'raw',
-                                            raw: JSON.stringify({
-                                                "data": {
-                                                    "documents": [
-                                                        {
-                                                            "number": docNumberFromResponse,
-                                                            "requestedLoanAmount": "1000"
-                                                        }
-                                                    ],
-                                                    "groupId": groupId,
-                                                    "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                    "modeOfPayment": "AC_PAYMENT"
-                                                }
-                                            })
-                                        }
-                                    };
-
-                                    insomnia.sendRequest(dfCasaPaymentRequest, (err, dfCasaPaymentRequestResponse) => {
-                                        if (err) return console.error("DF CASA Payment Request Error:", err);
-
-                                        const dfCasaPaymentApprovalRequest = {
-                                            url: `${insomnia.environment.get('host')}/group/df/approval`,
-                                            method: "PUT",
-                                            header: {
-                                                "Content-Type": "application/json",
-                                                "Authorization": `Bearer ${token}`
-                                            },
-                                            body: {
-                                                mode: 'raw',
-                                                raw: JSON.stringify({
-                                                    "data": {
-                                                        "groupId": groupId,
-                                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                        "status": "BUYER_CHECKER_REJECTED_AC_PAYMENT",
-                                                        "remarks": "Bank Rejected"
-                                                    }
-                                                })
-                                            }
-                                        };
-
-                                        insomnia.sendRequest(dfCasaPaymentApprovalRequest, (err, dfCasaPaymentApprovalResponse) => {
-                                            insomnia.test("Flow Complete: DF CASA Payment", () => {
-                                                insomnia.expect(dfCasaPaymentApprovalResponse.code).to.be.oneOf([200, 201]);
-                                            });
-                                        });
-                                    });
-                                });
-                            } else {
-                                console.error("Upload failed to return a document number.");
-                            }
+                        const uploadRes = await send(uploadRequest);
+                        insomnia.test("Flow: Invoice Upload", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
                         });
+
+                        const uploadData = uploadRes.json();
+
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return a document number");
+                        }
+
+                        const docNumber = uploadData.result[0].documentNumber;
+
+                        // 🔹 Approve
+                        const approvePayload = {
+                            data: {
+                                documents: [{ documentNumber: docNumber }],
+                                status: "SELLER_CHECKER_APPROVED_DOCUMENT",
+                                userId: insomnia.variables.replaceIn('{{$randomUUID}}')
+                            }
+                        };
+
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: { mode: 'raw', raw: JSON.stringify(approvePayload) }
+                        };
+
+                        const approveRes = await send(approveRequest);
+                        insomnia.test("Flow: Invoice Approval", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 DF CASA Payment Request
+                        const groupId = generateRandomString(8);
+
+                        const dfCasaPaymentRequest = {
+                            url: `${insomnia.environment.get('host')}/group/df/create`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        documents: [{ number: docNumber, requestedLoanAmount: "1000" }],
+                                        groupId,
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        modeOfPayment: "AC_PAYMENT"
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfCasaRes = await send(dfCasaPaymentRequest);
+                        insomnia.test("Flow: Invoice CASA Payment Request", () => {
+                            insomnia.expect(dfCasaRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 DF CASA Payment Approval
+                        const transactionId = `UBL${generateRandomNumber(8)}`;
+
+                        const dfCasaPaymentApprovalRequest = {
+                            url: `${insomnia.environment.get('host')}/group/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        "groupId": groupId,
+                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "status": "BUYER_CHECKER_REJECTED_AC_PAYMENT",
+                                        "remarks": "Rejected by Buyer DF CASA"
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfCasaApprovalRes = await send(dfCasaPaymentApprovalRequest);
+                        insomnia.test("Flow Complete: DF CASA Payment -> REJECTED BY BUYER", () => {
+                            insomnia.expect(dfCasaApprovalRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
                     }
+
                 });
             settings:
               renderRequestBody: true
@@ -6195,7 +6369,7 @@ collection:
             meta:
               id: req_67b081e9986849b2a223a15729effff6
               created: 1773630331156
-              modified: 1773630331156
+              modified: 1774937264967
               isPrivate: false
               description: ""
               sortKey: -1773630328858
@@ -6217,8 +6391,10 @@ collection:
               prefix: ""
             scripts:
               afterResponse: >-
-                insomnia.test("Sequential API Chain: Token -> Upload ->
-                Approve", function () {
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
+                -> CASA Request -> CASA Payment = BANK ERROR", async function ()
+                {
+
                     const generateRandomString = (length) => {
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         let result = '';
@@ -6228,9 +6404,31 @@ collection:
                         return result;
                     };
 
-                    const tokenResponse = insomnia.response.json();
+                    const generateRandomNumber = (length) => {
+                        const chars = '0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
 
-                    if (tokenResponse.success === true) {
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
+
+                    try {
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success !== true) {
+                            throw new Error("Token request failed");
+                        }
+
                         const token = tokenResponse.result;
                         insomnia.environment.set("blockchain_token", token);
 
@@ -6244,6 +6442,232 @@ collection:
                         const futureDueDate = date.toISOString().split('T')[0];
                         const today = new Date().toISOString().split('T')[0];
 
+                        // 🔹 Upload
+                        const uploadRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/upload`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    role: "SELLER",
+                                    userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                    uploadCode: "internal",
+                                    data: {
+                                        batchId,
+                                        fileName: "uploadfile.csv",
+                                        orgCode: "ESC",
+                                        role: "SELLER",
+                                        documents: [{
+                                            documentNumber: generatedDocNum,
+                                            documentType: "IN",
+                                            buyerCode: "EBC",
+                                            buyerName: "Example Buyer Company",
+                                            sellerCode: "ESC",
+                                            sellerName: "Example Seller Company",
+                                            transactionDate: today,
+                                            deliveryDate: today,
+                                            dueDate: futureDueDate,
+                                            currency: "PHP",
+                                            outstandingAmount: 1000,
+                                            totalAmount: "1000.00",
+                                            prioritySeller: true
+                                        }]
+                                    }
+                                })
+                            }
+                        };
+
+                        const uploadRes = await send(uploadRequest);
+                        insomnia.test("Flow: Invoice Upload", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        const uploadData = uploadRes.json();
+
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return a document number");
+                        }
+
+                        const docNumber = uploadData.result[0].documentNumber;
+
+                        // 🔹 Approve
+                        const approvePayload = {
+                            data: {
+                                documents: [{ documentNumber: docNumber }],
+                                status: "SELLER_CHECKER_APPROVED_DOCUMENT",
+                                userId: insomnia.variables.replaceIn('{{$randomUUID}}')
+                            }
+                        };
+
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: { mode: 'raw', raw: JSON.stringify(approvePayload) }
+                        };
+
+                        const approveRes = await send(approveRequest);
+                        insomnia.test("Flow: Invoice Approval", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 DF CASA Payment Request
+                        const groupId = generateRandomString(8);
+
+                        const dfCasaPaymentRequest = {
+                            url: `${insomnia.environment.get('host')}/group/df/create`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        documents: [{ number: docNumber, requestedLoanAmount: "1000" }],
+                                        groupId,
+                                        userId: insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        modeOfPayment: "AC_PAYMENT"
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfCasaRes = await send(dfCasaPaymentRequest);
+                        insomnia.test("Flow: Invoice CASA Payment Request", () => {
+                            insomnia.expect(dfCasaRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 DF CASA Payment Approval
+                        const transactionId = `UBL${generateRandomNumber(8)}`;
+
+                        const dfCasaPaymentApprovalRequest = {
+                            url: `${insomnia.environment.get('host')}/group/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    data: {
+                                        "groupId": groupId,
+                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "status": "BANK_ERROR_CASA",
+                                        "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "remarks": "Bank Error DF CASA"
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfCasaApprovalRes = await send(dfCasaPaymentApprovalRequest);
+                        insomnia.test("Flow Complete: DF CASA Payment -> BANK ERROR", () => {
+                            insomnia.expect(dfCasaApprovalRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
+                    }
+
+                });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{_['host']}}/access-token"
+            name: Upload Auto -> Approve -> ADA CRON = BANK REJECTED
+            meta:
+              id: req_d323fe54121247ee840012b16b0a361c
+              created: 1774926415581
+              modified: 1774926892630
+              isPrivate: false
+              description: ""
+              sortKey: -1773630328864.5
+            method: POST
+            body:
+              mimeType: application/json
+              text: |-
+                {
+                    "userId": "{{userId}}",
+                    "password": "{{password}}"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+            authentication:
+              type: bearer
+              disabled: false
+              token: ""
+              prefix: ""
+            scripts:
+              afterResponse: >-
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
+                -> ADA CRON = BANK REJECTED", async function () {
+
+                    const generateRandomString = (length) => {
+                        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
+
+                    const generateRandomNumber = (length) => {
+                        const chars = '0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
+
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
+
+                    try {
+
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success !== true) {
+                            throw new Error("Token request failed");
+                        }
+
+                        const token = tokenResponse.result;
+                        insomnia.environment.set("blockchain_token", token);
+
+                        const batchId = generateRandomString(10);
+                        const generatedDocNum = generateRandomString(12);
+
+                        const date = new Date();
+                        const randomDays = Math.floor(Math.random() * 30) + 1;
+                        date.setDate(date.getDate() + randomDays);
+
+                        const futureDueDate = date.toISOString().split('T')[0];
+                        const today = new Date().toISOString().split('T')[0];
+
+                        // 🔹 Upload
                         const uploadRequest = {
                             url: `${insomnia.environment.get('host')}/invoice/upload`,
                             method: "POST",
@@ -6282,17 +6706,31 @@ collection:
                             }
                         };
 
-                        insomnia.sendRequest(uploadRequest, (err, res) => {
-                            insomnia.test("Flow: Invoice Upload", () => {
-                                insomnia.expect(res.code).to.be.oneOf([200, 201]);
-                            });
-                            if (err) return console.error("Upload API Error:", err);
+                        const uploadRes = await send(uploadRequest);
 
-                            const uploadData = res.json();
+                        insomnia.test("Flow: Invoice Upload", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
+                        });
 
-                            if (uploadData.success && uploadData.result && uploadData.result.length > 0) {
-                                const docNumberFromResponse = uploadData.result[0].documentNumber;
-                                const approvePayload = {
+                        const uploadData = uploadRes.json();
+
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return a document number");
+                        }
+
+                        const docNumberFromResponse = uploadData.result[0].documentNumber;
+
+                        // 🔹 Approve
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
                                     "data": {
                                         "documents": [
                                             { "documentNumber": docNumberFromResponse }
@@ -6300,93 +6738,313 @@ collection:
                                         "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
                                         "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
                                     }
-                                };
-
-                                const approveRequest = {
-                                    url: `${insomnia.environment.get('host')}/invoice/df/approval`,
-                                    method: "PUT",
-                                    header: {
-                                        "Content-Type": "application/json",
-                                        "Authorization": `Bearer ${token}`
-                                    },
-                                    body: {
-                                        mode: 'raw',
-                                        raw: JSON.stringify(approvePayload)
-                                    }
-                                };
-
-                                insomnia.sendRequest(approveRequest, (err, approveRes) => {
-                                    insomnia.test("Flow: Invoice Approval", () => {
-                                        insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
-                                    });
-                                    if (err) return console.error("Approve API Error:", err);
-
-                                    const groupId = generateRandomString(8);
-
-                                    const dfCasaPaymentRequest = {
-                                        url: `${insomnia.environment.get('host')}/group/df/create`,
-                                        method: "POST",
-                                        header: {
-                                            "Content-Type": "application/json",
-                                            "Authorization": `Bearer ${token}`
-                                        },
-                                        body: {
-                                            mode: 'raw',
-                                            raw: JSON.stringify({
-                                                "data": {
-                                                    "documents": [
-                                                        {
-                                                            "number": docNumberFromResponse,
-                                                            "requestedLoanAmount": "1000"
-                                                        }
-                                                    ],
-                                                    "groupId": groupId,
-                                                    "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                    "modeOfPayment": "AC_PAYMENT"
-                                                }
-                                            })
-                                        }
-                                    };
-
-                                    insomnia.sendRequest(dfCasaPaymentRequest, (err, dfCasaPaymentRequestResponse) => {
-                                        insomnia.test("Flow: Invoice CASA Payment Request", () => {
-                                            insomnia.expect(dfCasaPaymentRequestResponse.code).to.be.oneOf([200, 201]);
-                                        });
-                                        if (err) return console.error("DF CASA Payment Request Error:", err);
-
-                                        const dfCasaPaymentApprovalRequest = {
-                                            url: `${insomnia.environment.get('host')}/group/df/approval`,
-                                            method: "PUT",
-                                            header: {
-                                                "Content-Type": "application/json",
-                                                "Authorization": `Bearer ${token}`
-                                            },
-                                            body: {
-                                                mode: 'raw',
-                                                raw: JSON.stringify({
-                                                    "data": {
-                                                        "groupId": groupId,
-                                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                        "status": "BANK_ERROR_CASA",
-                                                        "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
-                                                        "remarks": "Finacle Error"
-                                                    }
-                                                })
-                                            }
-                                        };
-
-                                        insomnia.sendRequest(dfCasaPaymentApprovalRequest, (err, dfCasaPaymentApprovalResponse) => {
-                                            insomnia.test("Flow Complete: DF CASA Payment -> BANK ERROR", () => {
-                                                insomnia.expect(dfCasaPaymentApprovalResponse.code).to.be.oneOf([200, 201]);
-                                            });
-                                        });
-                                    });
-                                });
-                            } else {
-                                console.error("Upload failed to return a document number.");
+                                })
                             }
+                        };
+
+                        const approveRes = await send(approveRequest);
+
+                        insomnia.test("Flow: Invoice Approval", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
                         });
+
+                        // 🔹 FI Access Token
+                        const fiAccessTokenRequest = {
+                            url: `${insomnia.environment.get('fihost')}/access-token`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json"
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    "userId": `${insomnia.environment.get('userId')}`,
+                                    "password": `${insomnia.environment.get('password')}`
+                                })
+                            }
+                        };
+
+                        const fiAccessTokenResponse = await send(fiAccessTokenRequest);
+
+                        insomnia.test("Flow: FI Access Token", () => {
+                            insomnia.expect(fiAccessTokenResponse.code).to.be.oneOf([200, 201]);
+                        });
+
+                        const fiAccessTokenResponseJson = fiAccessTokenResponse.json();
+                        const fiToken = fiAccessTokenResponseJson.result;
+
+                        const groupId = generateRandomString(8);
+
+                        // 🔹 ADA CRON
+                        const adaCRONRequest = {
+                            url: `${insomnia.environment.get('fihost')}/group/df/ada/create`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${fiToken}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    "data": {
+                                        "groupId": groupId,
+                                        "documents": [
+                                            { "number": docNumberFromResponse }
+                                        ],
+                                        "status": "BANK_REJECTED_PAYMENT_FINANCING",
+                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "modeOfPayment": "ADA_FINANCING",
+                                        "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "transactionId": `UBL${generateRandomNumber(8)}`,
+                                        "remarks": "Bank Rejected DF ADA CRON"
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfAdaCRONResponse = await send(adaCRONRequest);
+
+                        insomnia.test("Flow Complete: DF ADA CRON -> BANK REJECTED", () => {
+                            insomnia.expect(dfAdaCRONResponse.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
                     }
+
+                });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{_['host']}}/access-token"
+            name: Upload Auto -> Approve -> ADA CRON = BANK ERROR
+            meta:
+              id: req_3a7ee95c7c07438292f0c5228502a312
+              created: 1774926718890
+              modified: 1774927111147
+              isPrivate: false
+              description: ""
+              sortKey: -1773630328864.25
+            method: POST
+            body:
+              mimeType: application/json
+              text: |-
+                {
+                    "userId": "{{userId}}",
+                    "password": "{{password}}"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+            authentication:
+              type: bearer
+              disabled: false
+              token: ""
+              prefix: ""
+            scripts:
+              afterResponse: >-
+                insomnia.test("Sequential API Chain: Token -> Upload -> Approve
+                -> ADA CRON = BANK ERROR", async function () {
+
+                    const generateRandomString = (length) => {
+                        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
+
+                    const generateRandomNumber = (length) => {
+                        const chars = '0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        return result;
+                    };
+
+                    const send = (req) => {
+                        return new Promise((resolve, reject) => {
+                            insomnia.sendRequest(req, (err, res) => {
+                                if (err) reject(err);
+                                else resolve(res);
+                            });
+                        });
+                    };
+
+                    try {
+
+                        const tokenResponse = insomnia.response.json();
+
+                        if (tokenResponse.success !== true) {
+                            throw new Error("Token request failed");
+                        }
+
+                        const token = tokenResponse.result;
+                        insomnia.environment.set("blockchain_token", token);
+
+                        const batchId = generateRandomString(10);
+                        const generatedDocNum = generateRandomString(12);
+
+                        const date = new Date();
+                        const randomDays = Math.floor(Math.random() * 30) + 1;
+                        date.setDate(date.getDate() + randomDays);
+
+                        const futureDueDate = date.toISOString().split('T')[0];
+                        const today = new Date().toISOString().split('T')[0];
+
+                        // 🔹 Upload
+                        const uploadRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/upload`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    "role": "SELLER",
+                                    "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                    "uploadCode": "internal",
+                                    "data": {
+                                        "batchId": batchId,
+                                        "fileName": "uploadfile.csv",
+                                        "orgCode": "ESC",
+                                        "role": "SELLER",
+                                        "documents": [{
+                                            "documentNumber": generatedDocNum,
+                                            "documentType": "IN",
+                                            "buyerCode": "EBC",
+                                            "buyerName": "Example Buyer Company",
+                                            "sellerCode": "ESC",
+                                            "sellerName": "Example Seller Company",
+                                            "transactionDate": today,
+                                            "deliveryDate": today,
+                                            "dueDate": futureDueDate,
+                                            "currency": "PHP",
+                                            "outstandingAmount": 1000,
+                                            "totalAmount": "1000.00",
+                                            "prioritySeller": true
+                                        }]
+                                    }
+                                })
+                            }
+                        };
+
+                        const uploadRes = await send(uploadRequest);
+
+                        insomnia.test("Flow: Invoice Upload", () => {
+                            insomnia.expect(uploadRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        const uploadData = uploadRes.json();
+
+                        if (!uploadData.success || !uploadData.result?.length) {
+                            throw new Error("Upload failed to return a document number");
+                        }
+
+                        const docNumberFromResponse = uploadData.result[0].documentNumber;
+
+                        // 🔹 Approve
+                        const approveRequest = {
+                            url: `${insomnia.environment.get('host')}/invoice/df/approval`,
+                            method: "PUT",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    "data": {
+                                        "documents": [
+                                            { "documentNumber": docNumberFromResponse }
+                                        ],
+                                        "status": "SELLER_CHECKER_APPROVED_DOCUMENT",
+                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}')
+                                    }
+                                })
+                            }
+                        };
+
+                        const approveRes = await send(approveRequest);
+
+                        insomnia.test("Flow: Invoice Approval", () => {
+                            insomnia.expect(approveRes.code).to.be.oneOf([200, 201]);
+                        });
+
+                        // 🔹 FI Access Token
+                        const fiAccessTokenRequest = {
+                            url: `${insomnia.environment.get('fihost')}/access-token`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json"
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    "userId": `${insomnia.environment.get('userId')}`,
+                                    "password": `${insomnia.environment.get('password')}`
+                                })
+                            }
+                        };
+
+                        const fiAccessTokenResponse = await send(fiAccessTokenRequest);
+
+                        insomnia.test("Flow: FI Access Token", () => {
+                            insomnia.expect(fiAccessTokenResponse.code).to.be.oneOf([200, 201]);
+                        });
+
+                        const fiAccessTokenResponseJson = fiAccessTokenResponse.json();
+                        const fiToken = fiAccessTokenResponseJson.result;
+
+                        const groupId = generateRandomString(8);
+
+                        // 🔹 ADA CRON
+                        const adaCRONRequest = {
+                            url: `${insomnia.environment.get('fihost')}/group/df/ada/create`,
+                            method: "POST",
+                            header: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${fiToken}`
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    "data": {
+                                        "groupId": groupId,
+                                        "documents": [
+                                            { "number": docNumberFromResponse }
+                                        ],
+                                        "status": "BANK_ERROR_FINANCING",
+                                        "userId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "modeOfPayment": "ADA_FINANCING",
+                                        "referenceId": insomnia.variables.replaceIn('{{$randomUUID}}'),
+                                        "remarks": "Bank Error DF ADA CRON"
+                                    }
+                                })
+                            }
+                        };
+
+                        const dfAdaCRONResponse = await send(adaCRONRequest);
+
+                        insomnia.test("Flow Complete: DF ADA CRON -> BANK ERROR", () => {
+                            insomnia.expect(dfAdaCRONResponse.code).to.be.oneOf([200, 201]);
+                        });
+
+                    } catch (err) {
+                        console.error("Flow error:", err);
+                        throw err;
+                    }
+
                 });
             settings:
               renderRequestBody: true
@@ -6401,16 +7059,16 @@ cookieJar:
   meta:
     id: jar_3a7148c8134313d06313f0c4774dd5f8f3dad896
     created: 1773630217820
-    modified: 1774924474076
+    modified: 1774937200883
 environments:
   name: Base Environment
   meta:
     id: env_3a7148c8134313d06313f0c4774dd5f8f3dad896
     created: 1773627777374
-    modified: 1774924474079
+    modified: 1774937200884
     isPrivate: false
   data:
-    blockchain_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJMT0NBTCIsInJvbGUiOiJjbGllbnQiLCJpYXQiOjE3NzQ5MjQ0MjksImV4cCI6MTc3NDk1MzIyOX0.EdDVCbcMFM8x5hUMHRFxLJ6X2tp-CZyiu3ErnmSLsDE
+    blockchain_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJMT0NBTCIsInJvbGUiOiJjbGllbnQiLCJpYXQiOjE3NzQ5MzcxNzEsImV4cCI6MTc3NDk2NTk3MX0.YDscZUche0kKOFo5MziQgrqPFH09tNdB6zHmOKr6WBE
     fihost: http://localhost:3003/v2
     fitoken: ""
     host: http://localhost:3002/v2
